@@ -1,0 +1,14 @@
+# 忽略所有数据文件
+*.mzML
+*.raw
+*.cdf
+
+# 忽略Python产生的缓存垃圾
+__pycache__/
+*.pyc
+
+# 忽略结果文件夹（如果你不想备份结果的话）
+results/
+
+# 忽略系统文件
+.DS_Store
