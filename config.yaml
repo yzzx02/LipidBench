@@ -4,7 +4,27 @@ project:
 paths:
   input_dir: "./data/raw_mzML"
   output_dir: "./results"
+  xcms_output: "./results/xcms"
+  ms_dial_output: "./results/ms_dial"
+  pyopenms_output: "./results/pyopenms"
+  asari_output: "./results/asari"
+common_params:
+  mz_tolerance_ppm: 10.0
+  rt_tolerance_sec: 10.0
+  n_workers: 4
 parameters:
-  mz_tolerance(ppm): 10
-  rt_tolerance(seconds): 10
-  noise_threshold: 1000
+  xcms:
+    peak_picking:
+      method: "centWave"
+      noise: 1000
+      snthresh: 5
+      ppm: 10
+      peakwidth: [5, 50]
+      prefilter_val: 3
+    grouping:
+      bw: 5
+      minfrac: 0.5
+    alignment:
+      bin_size: 1.0
+
+    
