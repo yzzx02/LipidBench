@@ -1,0 +1,10 @@
+project:
+  name: "Lipidomics Algorithm Benchmark"
+  description: "Comparing XCMS, MS-DIAL, pyOpenMS, and Asari"
+paths:
+  input_dir: "./data/raw_mzML"
+  output_dir: "./results"
+parameters:
+  mz_tolerance(ppm): 10
+  rt_tolerance(seconds): 10
+  noise_threshold: 1000
