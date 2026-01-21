@@ -14,4 +14,6 @@ def load_xcms_results(file_path):
         for col in sample_cols:
             new_data[index][col]=row[col]
     pd = pd.DataFrame.from_dict(new_data,orient='index')
+    #添加一列数字标记feature id
+    pd.insert(0,'feature_id',range(1,1+len(pd)))
     return pd
