@@ -19,6 +19,7 @@ def extract_xcms_params(config):
     noise = peak_picking.get("noise", 1000)
     sn = peak_picking.get("snthresh", 3)
     prefilter = peak_picking.get("prefilter_val", 3)
+    mzdiff = peak_picking.get("mzdiff", 0.001)
 
     return {
         "polarity": polarity,
@@ -26,12 +27,13 @@ def extract_xcms_params(config):
         "minwidth": minwidth,
         "maxwidth": maxwidth,
         "noise": noise,
+        "mzdiff": mzdiff,
         "sn": sn,
         "prefilter": prefilter,
     }
 
 
-def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise=1000, sn=3, prefilter=3):
+def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise=1000, sn=3, prefilter=3, mzdiff=0.001):
     """Invoke the XCMS R script via subprocess."""
     r_script_path = os.path.join(os.path.dirname(__file__), "xcms.R")
     cmd = [
@@ -55,6 +57,8 @@ def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise
         str(sn),
         "--prefilter",
         str(prefilter),
+        "--mzdiff",
+        str(mzdiff),
     ]
 
     print(f"Executing XCMS: {' '.join(cmd)}")
@@ -67,7 +71,7 @@ def run_xcms_pipeline(config):
     input_dir = _resolve_path(base_dir, config["paths"]["input_dir"])
     output_dir = _resolve_path(base_dir, config["paths"]["xcms_output"])
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_file = output_dir / "xcms_features.tsv"
+    output_file = output_dir / "xcms_features.csv"
 
     if not input_dir.exists():
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
