@@ -1,5 +1,4 @@
 suppressWarnings(suppressMessages(library(MSnbase)))
-cat("[R] 正在加载依赖库 (这通常需要几秒钟)...\n")
 suppressWarnings(suppressMessages(library(xcms)))
 suppressMessages(library(optparse))
 suppressMessages(library(BiocParallel))
