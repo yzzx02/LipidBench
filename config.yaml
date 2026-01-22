@@ -27,5 +27,10 @@ parameters:
       minfrac: 0.5
     alignment:
       bin_size: 1.0
-
-    
+  pyopenms:
+    peak_picking:
+      noise: 1000
+      sn: 5
+      mz_tol: 10.0
+      min_fwhm: 2.5
+      max_fwhm: 60.0

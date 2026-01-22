@@ -72,7 +72,7 @@ def run_xcms_pipeline(config):
     output_dir = _resolve_path(base_dir, config["paths"]["xcms_output"])
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / "xcms_features.csv"
-
+    
     if not input_dir.exists():
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
 
