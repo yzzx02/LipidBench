@@ -16,7 +16,7 @@ parameters:
   xcms:
     peak_picking:
       method: "centWave"
-      noise: 3000
+      noise: 1000
       snthresh: 5
       ppm: 10
       peakwidth: [5, 50]
@@ -29,7 +29,7 @@ parameters:
       bin_size: 1.0
   pyopenms:
     peak_picking:
-      noise: 1000
+      noise: 500
       sn: 5
       mz_tol: 10.0
       min_fwhm: 2.5

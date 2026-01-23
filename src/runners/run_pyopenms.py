@@ -34,13 +34,14 @@ def group_features(feature_maps, output_file):
     consensus_map.setColumnHeaders(file_descriptions)
     consensus_map.setUniqueIds()
     df = consensus_map.get_df()
-    df.to_csv(output_file,sep='\t',index=False)
+    return df
 def run_pyopenms(input_dir,output_file,mz_tol,min_fwhm,max_fwhm,noise=1000,sn=5):
     input_dir = Path(input_dir).resolve()
     feature_maps = []
     for file in input_dir.glob("*.mzML"):
+        filename = str(file)
         exp = oms.MSExperiment()
-        oms.MzMLFile().load(file, exp)
+        oms.MzMLFile().load(filename, exp)
         # Perform mass trace detection
         mass_traces =[]
         mtd=oms.MassTraceDetection()
@@ -58,25 +59,24 @@ def run_pyopenms(input_dir,output_file,mz_tol,min_fwhm,max_fwhm,noise=1000,sn=5)
         epd_par.setValue(b'max_fwhm', max_fwhm)
         epd_par.setValue(b'chrom_peak_snr', sn)
         epd.setParameters(epd_par)
-        epd.run(mass_traces, mass_traces_deconvol)
+        epd.detectPeaks(mass_traces, mass_traces_deconvol)
         # feature detection
         feature_map=oms.FeatureMap()
         ffm=oms.FeatureFindingMetabo()
         ffm_par=ffm.getDefaults()
-        ffm_par.setValue(b'local_rt_range', 5.0)
+        ffm_par.setValue(b'local_rt_range', 8.0)
         ffm_par.setValue(b'local_mz_range', 3.5)
         ffm_par.setValue(b'mz_scoring_13C', b'true')
-        ffm_par.setValue(b'report_convex_hulls', b'true')
         ffm_par.setValue(b'charge_upper_bound',2)
         ffm.setParameters(ffm_par)
         ffm.run(mass_traces_deconvol, feature_map,[])
-        # Add metadata
-        feature_map.setUniqueIDs()
-        feature_map.setPrimaryMSRunPath([file.encode()])
+        # Add metadata 设置
+        feature_map.setUniqueIds()
+        feature_map.setPrimaryMSRunPath([filename.encode()])
         feature_maps.append(feature_map)
     #aline features across samples
     align_features(feature_maps)
-    group_features(feature_maps, output_file)
+    return group_features(feature_maps, output_file)
 
 def extract_pyopenms_params(config):
     pyopenms_params = config.get("parameters", {}).get("pyopenms", {})
@@ -87,22 +87,40 @@ def extract_pyopenms_params(config):
     noise = pyopenms_params.get('noise',1000)
     sn = pyopenms_params.get('sn',5)
     return {
-        'mz_tol': mz_tol,
-        'min_fwhm': min_fwhm,
-        'max_fwhm': max_fwhm,
-        'noise': noise,
-        'sn':sn,
+        'mz_tol': float(mz_tol),
+        'min_fwhm': float(min_fwhm),
+        'max_fwhm': float(max_fwhm),
+        'noise': float(noise),
+        'sn': float(sn),
     }
-    
+
+
 def run_pyopenms_pipeline(config):
     base_dir = get_base_dir()
-    input_dir = _resolve_path(base_dir, config['Paths']['input_dir'])
-    output_dir = _resolve_path(base_dir, config['Paths']['output_dir'])
+    input_dir = _resolve_path(base_dir, config['paths']['input_dir'])
+    output_dir = _resolve_path(base_dir, config['paths']['output_dir'])
     output_file = os.path.join(output_dir, "pyopenms_features.csv")
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True, exist_ok=True)
     if not input_dir.exists():
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
     params = extract_pyopenms_params(config)
-    run_pyopenms(input_dir=input_dir, output_file=output_file, **params)
+    df=run_pyopenms(input_dir=input_dir, output_file=output_file, **params)
+    # 删除无关列：sequence(序列), charge(电荷), quality(质量评分)
+    cols_to_drop = ['sequence', 'charge', 'quality']
+    df = df.drop(columns=[c for c in df.columns if c in cols_to_drop], errors='ignore')
+
+    # 对RT列除以60,3位小数，mz列保留4位小数
+    if 'mz' in df.columns:
+        df['mz'] = df['mz'].round(4)
+    if 'RT' in df.columns:
+        df['RT'] = (df['RT'] / 60.0).round(3)
+
+    if 'Feature_id' not in df.columns:
+        df.insert(0, 'Feature_id', range(1, len(df) + 1))
+    
+    # 保存 CSV，float_format='%.4f' 可以避免科学计数法
+    df.to_csv(output_file, index=False, float_format='%.4f')
 
 if __name__=='__main__':
     feature_grouper = oms.FeatureGroupingAlgorithmKD()

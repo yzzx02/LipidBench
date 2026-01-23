@@ -10,14 +10,13 @@ if str(SRC_DIR) not in sys.path:
 
 from utils.config_io import load_config
 from runners.run_xcms import run_xcms_pipeline
+from runners.run_pyopenms import run_pyopenms_pipeline
 
 
 def run_ms_dial_pipeline(_config):
     raise NotImplementedError("MS-DIAL pipeline not implemented yet")
 
 
-def run_pyopenms_pipeline(_config):
-    raise NotImplementedError("pyOpenMS pipeline not implemented yet")
 
 
 def run_asari_pipeline(_config):
@@ -36,7 +35,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LipidBench algorithm runner")
     parser.add_argument(
         "--algo",
-        default="xcms",
+        default="pyopenms,xcms",
         help="Algorithm(s) to run, comma-separated (e.g., xcms,ms-dial)",
     )
     return parser.parse_args()
