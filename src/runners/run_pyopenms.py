@@ -34,10 +34,13 @@ def group_features(feature_maps, output_file):
     consensus_map.setColumnHeaders(file_descriptions)
     consensus_map.setUniqueIds()
     df = consensus_map.get_df()
-    df.to_csv(output_file,sep='\t',index=False)
+    df.to_csv(output_file,index=False)
 def run_pyopenms(input_dir,output_file,mz_tol,min_fwhm,max_fwhm,noise=1000,sn=5):
     input_dir = Path(input_dir).resolve()
     feature_maps = []
+    #判断文件数目
+    file_count = len(list(input_dir.glob("*.mzML")))
+    #如果只有一个文件则不对齐直接输出feature
     for file in input_dir.glob("*.mzML"):
         exp = oms.MSExperiment()
         oms.MzMLFile().load(file, exp)
@@ -73,10 +76,14 @@ def run_pyopenms(input_dir,output_file,mz_tol,min_fwhm,max_fwhm,noise=1000,sn=5)
         # Add metadata
         feature_map.setUniqueIDs()
         feature_map.setPrimaryMSRunPath([file.encode()])
+         #直接输出feature_maps
         feature_maps.append(feature_map)
-    #aline features across samples
-    align_features(feature_maps)
-    group_features(feature_maps, output_file)
+        if file_count==1:
+            return feature_map.get_df().to_csv(output_file,index=False)
+        else:
+            #aline features across samples
+            align_features(feature_maps)
+            group_features(feature_maps, output_file)
 
 def extract_pyopenms_params(config):
     pyopenms_params = config.get("parameters", {}).get("pyopenms", {})

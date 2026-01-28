@@ -17,3 +17,30 @@ def load_xcms_results(file_path):
     #添加一列数字标记feature id
     pd.insert(0,'feature_id',range(1,1+len(pd)))
     return pd
+
+def load_msdial_results(file_path,outputfile):
+    data=pd.read_excel(file_path,index_col=0)
+    new_data={}
+    sample_cols=[col for col in data.columns if col.endswith(".mzML") ]
+    data[sample_cols] = data[sample_cols].fillna(0)
+    column_map = {
+            'Precursor m/z': 'mz',
+            'RT left(min)': 'RTmin',
+            'RT (min)': 'RT',
+            'RT right (min)': 'RTmax',
+            'Height': 'Height',
+            'Area': 'Area',
+            'Estimated noise': 'Estimated noise',
+            'S/N': 'S/N',
+            'Sharpness': 'Sharpness',
+            'Gaussian similarity': 'Gaussian similarity',
+            'Ideal slope': 'Ieal slope',
+            'Symmetry': 'Symmetry'
+        }
+    keep_cols = list(column_map.keys()) + sample_cols
+    df = data[keep_cols].copy()
+    df.rename(columns=column_map, inplace=True)
+    df.to_csv(f'{outputfile}', index=True, index_label='Feature_ID')
+    print(f"Processed MS-DIAL results saved to {outputfile}")
+    #添加一列数字标记feature id
+    return df

@@ -34,3 +34,13 @@ parameters:
       mz_tol: 10.0
       min_fwhm: 2.5
       max_fwhm: 60.0
+  msdial:
+    input_dir: './Data/msdial'
+    output_dir: './Results/msdial'
+  asari:
+    ppm: 10.0
+    autoheight: True
+    mode: 'pos'
+    min_intensity_threshold: 1000
+
+  

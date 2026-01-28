@@ -6,7 +6,7 @@ def _resolve_path(base_dir, maybe_relative_path):
     path = Path(maybe_relative_path)
     if path.is_absolute():
         return path
-    return Path(base_dir) / path
+    return (base_dir / path).resolve()
 def load_config():
     if not os.path.exists(Config_path):
         raise FileNotFoundError(f"Configuration file not found at {Config_path}")
