@@ -11,6 +11,7 @@ if str(SRC_DIR) not in sys.path:
 from utils.config_io import load_config
 from runners.run_xcms import run_xcms_pipeline
 from runners.run_msdial import run_msdial_pipeline
+from runners.run_pyopenms import run_pyopenms_pipeline
 
 
 
