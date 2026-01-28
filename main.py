@@ -12,8 +12,6 @@ from utils.config_io import load_config
 from runners.run_xcms import run_xcms_pipeline
 from runners.run_msdial import run_msdial_pipeline
 
-def run_pyopenms_pipeline(_config):
-    raise NotImplementedError("pyOpenMS pipeline not implemented yet")
 
 
 def run_asari_pipeline(_config):

@@ -2,7 +2,7 @@ import os
 import subprocess
 
 from utils.config_io import get_base_dir, _resolve_path
-
+from utils.data_io import load_xcms_results
 
 def extract_xcms_params(config):
     """Pull XCMS parameters from config with safe defaults."""
@@ -78,5 +78,8 @@ def run_xcms_pipeline(config):
 
     params = extract_xcms_params(config)
     run_xcms(input_dir=input_dir, output_file=output_file, **params)
+    if not output_file.exists():
+        raise FileNotFoundError(f"XCMS output file not found: {output_file}")
+    load_xcms_results(output_file)
 
 

@@ -1,5 +1,4 @@
 suppressWarnings(suppressMessages(library(MSnbase)))
-cat("[R] 正在加载依赖库 (这通常需要几秒钟)...\n")
 suppressWarnings(suppressMessages(library(xcms)))
 suppressMessages(library(optparse))
 suppressMessages(library(BiocParallel))
@@ -32,14 +31,14 @@ params <- CentWaveParam(
     noise = opt$noise,
     snthresh = opt$sn,
     mzdiff = opt$mzdiff,
-    prefilter = c(opt$prefilter, 3000), # 使用噪声水平作为强度阈值，避免生成过多ROI
+    prefilter = c(opt$prefilter, 1000), # 使用噪声水平作为强度阈值，避免生成过多ROI
     mzCenterFun = "wMean",
     integrate = 1,
     fitgauss = FALSE
 )
 xdata <- findChromPeaks(raw_data, params, return.type="XCMSnExp") # nolint
 
-pdp <- PeakDensityParam(sampleGroups = rep(1, length(files)), minFraction = opt$frac, bw = 5,binSize = 0.01)
+pdp <- PeakDensityParam(sampleGroups = rep(1, length(files)), minFraction = opt$frac, bw = 10,binSize = 0.005)
 xdata <- groupChromPeaks(xdata, param = pdp)
 
 if (length(files) > 1) {
@@ -54,8 +53,6 @@ if (length(files) > 1) {
 peakInfo <- featureDefinitions(xdata)
 intensities <- featureValues(xdata, value = "into") # 使用面积(into)而非峰高
 peaktable <- merge(peakInfo, intensities, by = 'row.names' , all = TRUE)
-# 重命名 Row.names 为 feature_id 并保留
-names(peaktable)[names(peaktable) == "Row.names"] <- "feature_id"
 drop_cols <- c("peakidx")
 peaktable <- peaktable[, !(names(peaktable) %in% drop_cols)]
-write.table(peaktable, file = opt$output, sep="\t", row.names= FALSE, col.names=TRUE, quote=FALSE)
+write.table(peaktable, file = opt$output, sep=",", row.names= FALSE, col.names=TRUE, quote=FALSE)
