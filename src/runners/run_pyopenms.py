@@ -2,6 +2,7 @@ import pyopenms as oms
 import os
 from pathlib import Path
 from utils.config_io import get_base_dir, _resolve_path
+from utils.data_io import load_pyopenms_results
 def align_features(feature_maps):
     ref_index = feature_maps.index(sorted(feature_maps, key=lambda x: x.size())[-1])
     aligner = oms.MapAlignmentAlgorithmPoseClustering()
@@ -106,28 +107,21 @@ def run_pyopenms_pipeline(config):
     base_dir = get_base_dir()
     input_dir = _resolve_path(base_dir, config['paths']['input_dir'])
     output_dir = _resolve_path(base_dir, config['paths']['output_dir'])
-    output_file = os.path.join(output_dir, "pyopenms_features.csv")
+    output_dir_name = input_dir.name
+    output_file = output_dir / f"{output_dir_name}_pyopenms_features.csv"
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
     if not input_dir.exists():
         raise FileNotFoundError(f"Input directory not found: {input_dir}")
     params = extract_pyopenms_params(config)
-    df=run_pyopenms(input_dir=input_dir, output_file=output_file, **params)
-    # 删除无关列：sequence(序列), charge(电荷), quality(质量评分)
-    cols_to_drop = ['sequence', 'charge', 'quality']
-    df = df.drop(columns=[c for c in df.columns if c in cols_to_drop], errors='ignore')
+    run_pyopenms(input_dir=input_dir, output_file=output_file, **params)
+    #获取输出文件 判断是否存在
+    if not output_file.exists():
+        raise FileNotFoundError(f"pyOpenMS output file not found: {output_file}")
+    # 处理输出文件
+    filepath = output_file.resolve()
+    load_pyopenms_results(filepath)
 
-    # 对RT列除以60,3位小数，mz列保留4位小数
-    if 'mz' in df.columns:
-        df['mz'] = df['mz'].round(4)
-    if 'RT' in df.columns:
-        df['RT'] = (df['RT'] / 60.0).round(3)
-
-    if 'Feature_id' not in df.columns:
-        df.insert(0, 'Feature_id', range(1, len(df) + 1))
-    
-    # 保存 CSV，float_format='%.4f' 可以避免科学计数法
-    df.to_csv(output_file, index=False, float_format='%.4f')
 
 if __name__=='__main__':
     feature_grouper = oms.FeatureGroupingAlgorithmKD()
