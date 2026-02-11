@@ -12,11 +12,9 @@ from utils.config_io import load_config
 from runners.run_xcms import run_xcms_pipeline
 from runners.run_msdial import run_msdial_pipeline
 from runners.run_pyopenms import run_pyopenms_pipeline
+from runners.run_asari import run_asari_pipeline
 
 
-
-def run_asari_pipeline(_config):
-    raise NotImplementedError("Asari pipeline not implemented yet")
 
 
 ALGORITHM_REGISTRY = {
@@ -31,7 +29,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LipidBench algorithm runner")
     parser.add_argument(
         "--algo",
-        default="ms-dial",
+        default="asari",
         help="Algorithm(s) to run, comma-separated (e.g., xcms,ms-dial)",
     )
     return parser.parse_args()

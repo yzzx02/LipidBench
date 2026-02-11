@@ -7,7 +7,7 @@ paths:
   xcms_output: "./results/xcms"
   ms_dial_output: "./results/ms_dial"
   pyopenms_output: "./results/pyopenms"
-  asari_output: "./results/asari"
+  asari_output: "./Results/asari"
 common_params:
   mz_tolerance_ppm: 10.0
   rt_tolerance_sec: 10.0

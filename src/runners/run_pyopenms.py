@@ -71,20 +71,23 @@ def run_pyopenms(input_dir,output_file,mz_tol,min_fwhm,max_fwhm,noise=1000,sn=5)
         ffm_par.setValue(b'local_rt_range', 8.0)
         ffm_par.setValue(b'local_mz_range', 3.5)
         ffm_par.setValue(b'mz_scoring_13C', b'true')
+        ffm_par.setValue(b'report_convex_hulls', b'true')
         ffm_par.setValue(b'charge_upper_bound',2)
         ffm.setParameters(ffm_par)
         ffm.run(mass_traces_deconvol, feature_map,[])
         # Add metadata
-        feature_map.setUniqueIDs()
-        feature_map.setPrimaryMSRunPath([file.encode()])
+        feature_map.setUniqueIds()
+        feature_map.setPrimaryMSRunPath([filename.encode()])
          #直接输出feature_maps
         feature_maps.append(feature_map)
-        if file_count==1:
-            return feature_map.get_df().to_csv(output_file,index=False)
-        else:
-            #aline features across samples
-            align_features(feature_maps)
-            group_features(feature_maps, output_file)
+    
+    if file_count==1:
+        feature_maps[0].get_df().to_csv(output_file,index=False)
+        return output_file
+    else:
+        #aline features across samples
+        align_features(feature_maps)
+        group_features(feature_maps, output_file)
 
 def extract_pyopenms_params(config):
     pyopenms_params = config.get("parameters", {}).get("pyopenms", {})
@@ -106,9 +109,8 @@ def extract_pyopenms_params(config):
 def run_pyopenms_pipeline(config):
     base_dir = get_base_dir()
     input_dir = _resolve_path(base_dir, config['paths']['input_dir'])
-    output_dir = _resolve_path(base_dir, config['paths']['output_dir'])
-    output_dir_name = input_dir.name
-    output_file = output_dir / f"{output_dir_name}_pyopenms_features.csv"
+    output_dir = _resolve_path(base_dir, config['paths']['pyopenms_output'])
+    output_file = output_dir / "pyopenms_features.csv"
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
     if not input_dir.exists():
@@ -120,7 +122,7 @@ def run_pyopenms_pipeline(config):
         raise FileNotFoundError(f"pyOpenMS output file not found: {output_file}")
     # 处理输出文件
     filepath = output_file.resolve()
-    load_pyopenms_results(filepath)
+    load_pyopenms_results(filepath, input_dir=input_dir, **params)
 
 
 if __name__=='__main__':

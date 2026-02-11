@@ -31,7 +31,7 @@ params <- CentWaveParam(
     noise = opt$noise,
     snthresh = opt$sn,
     mzdiff = opt$mzdiff,
-    prefilter = c(opt$prefilter, 1000), # 使用噪声水平作为强度阈值，避免生成过多ROI
+    prefilter = c(opt$prefilter, 3000), # 使用噪声水平作为强度阈值，避免生成过多ROI
     mzCenterFun = "wMean",
     integrate = 1,
     fitgauss = FALSE
@@ -51,8 +51,33 @@ if (length(files) > 1) {
 }
 
 peakInfo <- featureDefinitions(xdata)
+
+# 当只有一个文件时，featureDefinitions 默认计算的是 Peak 中心点的范围（即只有一个点）
+# 因此 mzmin/mzmax 会等于 mzmed。这里手动替换为 Peak 的实际边界范围。
+if (length(files) == 1) {
+    pks <- chromPeaks(xdata)
+    peak_indices <- sapply(peakInfo$peakidx, function(x) x[1])
+    peakInfo$mzmin <- pks[peak_indices, "mzmin"]
+    peakInfo$mzmax <- pks[peak_indices, "mzmax"]
+    peakInfo$rtmin <- pks[peak_indices, "rtmin"]
+    peakInfo$rtmax <- pks[peak_indices, "rtmax"]
+}
+
 intensities <- featureValues(xdata, value = "into") # 使用面积(into)而非峰高
+snrs <- featureValues(xdata, value = "sn") # 提取信噪比
+
 peaktable <- merge(peakInfo, intensities, by = 'row.names' , all = TRUE)
+
+# 仅当单样本时加入 sn 列
+# 如果 snrs 是向量或者单列矩阵，则认为是单样本
+is_single_sample <- is.null(dim(snrs)) || (length(dim(snrs)) == 2 && ncol(snrs) == 1)
+
+if (is_single_sample) {
+    snrs_df <- as.data.frame(snrs)
+    colnames(snrs_df) <- "sn"
+    peaktable <- merge(peaktable, snrs_df, by.x = "Row.names", by.y = "row.names", all.x = TRUE)
+}
+
 drop_cols <- c("peakidx")
 peaktable <- peaktable[, !(names(peaktable) %in% drop_cols)]
 write.table(peaktable, file = opt$output, sep=",", row.names= FALSE, col.names=TRUE, quote=FALSE)
