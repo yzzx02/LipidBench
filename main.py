@@ -29,7 +29,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LipidBench algorithm runner")
     parser.add_argument(
         "--algo",
-        default="asari",
+        default="asari,xcms,ms-dial,pyopenms",
         help="Algorithm(s) to run, comma-separated (e.g., xcms,ms-dial)",
     )
     return parser.parse_args()

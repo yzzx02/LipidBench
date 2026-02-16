@@ -1,11 +1,5 @@
 import pandas as pd
-
-
-def _asari_sort_key_feature_id(feature_id_series: pd.Series) -> pd.Series:
-    s = feature_id_series.astype(str)
-    extracted = s.str.extract(r"^[Ff](\d+)$")[0]
-    key = pd.to_numeric(extracted, errors="coerce")
-    return key
+from utils.feature_id import normalize_feature_id
 
 
 def load_asari_results(project_dir, output_dir=None, cleanup_project=True):
@@ -46,16 +40,7 @@ def load_asari_results(project_dir, output_dir=None, cleanup_project=True):
         if "Feature_ID" not in df.columns:
             raise ValueError("Asari table missing Feature_ID (id_number)")
 
-        key = _asari_sort_key_feature_id(df["Feature_ID"])
-        if key.notna().any():
-            df = (
-                df.assign(_sort_key=key)
-                .sort_values("_sort_key", kind="mergesort")
-                .drop(columns=["_sort_key"])
-            )
-        else:
-            df = df.sort_values("Feature_ID", kind="mergesort")
-        return df
+        return normalize_feature_id(df, column="Feature_ID")
 
     output_dir.mkdir(parents=True, exist_ok=True)
     full_df = _normalize_and_sort(pd.read_csv(full_tsv, sep="\t"))
@@ -114,7 +99,8 @@ def load_xcms_results(file_path):
         new_data[index] = entry
 
     df = pd.DataFrame.from_dict(new_data,orient='index')
-    df.to_csv(file_path,index_label='Feature_ID',float_format='%.4f')
+    df = normalize_feature_id(df, column='Feature_ID')
+    df.to_csv(file_path,index=False,float_format='%.4f')
     return df
 
 def load_msdial_results(file_path,outputfile):
@@ -138,7 +124,8 @@ def load_msdial_results(file_path,outputfile):
     keep_cols = list(column_map.keys()) + sample_cols
     df = data[keep_cols].copy()
     df.rename(columns=column_map, inplace=True)
-    df.to_csv(f'{outputfile}', index=True, index_label='Feature_ID')
+    df = normalize_feature_id(df, column='Feature_ID')
+    df.to_csv(f'{outputfile}', index=False)
     print(f"Processed MS-DIAL results saved to {outputfile}")
     #添加一列数字标记feature id
     return df
@@ -253,9 +240,8 @@ def load_pyopenms_results(
     ]
     df = df.drop(columns=[c for c in cols_to_drop if c in df.columns], errors="ignore")
 
-    # Create Feature_ID
-    if "Feature_ID" not in df.columns:
-        df.insert(0, "Feature_ID", range(1, len(df) + 1))
+    # Normalize Feature_ID to F1..Fn
+    df = normalize_feature_id(df, column="Feature_ID")
 
     # Unit conversions / rounding
     for col in ["mz", "mzmin", "mzmax"]:
