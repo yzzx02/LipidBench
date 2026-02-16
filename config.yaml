@@ -39,8 +39,9 @@ parameters:
     output_dir: './Results/msdial'
   asari:
     ppm: 10.0
-    autoheight: True
+    autoheight: False
     mode: 'pos'
     min_intensity_threshold: 1000
+    min_peak_height: 5000
 
   

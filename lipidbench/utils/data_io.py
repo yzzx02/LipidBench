@@ -1,27 +1,10 @@
 import pandas as pd
 from pathlib import Path
 
-from utils.feature_id import normalize_feature_id
+from lipidbench.utils.feature_id import normalize_feature_id
 
 
 def load_asari_results(project_dir, output_dir=None, cleanup_project=True):
-    """Post-process Asari project outputs.
-
-    Spec:
-    - Keep only two CSVs in the Asari output folder: full_Feature_table + preferred_Feature_table.
-    - Rename columns:
-      - id_number / [peak]id_number -> Feature_ID
-      - rtime_left_base / rtime_right_base -> RTmin / RTmax
-    - Sort by Feature_ID in ascending F<number> order.
-    - Delete the original TSVs after writing CSV.
-    - Optionally delete the whole project directory if it is under output_dir.
-
-    Note:
-    - This function intentionally does NOT try to normalize peak-area/intensity column names.
-      The GUI will let users choose which column is the peak area.
-    - RT unit normalization is also left to the GUI.
-    """
-
     project_dir = Path(project_dir).resolve()
     output_dir = Path(output_dir).resolve() if output_dir is not None else project_dir
 
@@ -78,8 +61,6 @@ def load_xcms_results(file_path):
     data = pd.read_csv(file_path, index_col=0)
     new_data = {}
     sample_cols = [col for col in data.columns if col.endswith(".mzML")]
-
-    # Check if 'sn' column exists (only for single sample)
     has_sn = "sn" in data.columns
 
     for col in sample_cols:
@@ -92,14 +73,10 @@ def load_xcms_results(file_path):
             "RTmax": round(row["rtmax"] / 60, 3),
             "npeaks": row["npeaks"],
         }
-
-        # Add actual SN if available
         if has_sn:
             entry["sn"] = row["sn"]
-
         for col in sample_cols:
             entry[col] = row[col]
-
         new_data[index] = entry
 
     df = pd.DataFrame.from_dict(new_data, orient="index")
@@ -145,36 +122,20 @@ def load_pyopenms_results(
     sn=5.0,
     force_recompute_bounds=False,
 ):
-    """Post-process pyOpenMS CSV in-place.
-
-    Assumes FeatureFindingMetabo ran with `report_convex_hulls=true`, so the
-    exported get_df() CSV contains: RTstart/RTend/MZstart/MZend.
-
-    - Ensures RTmin/RTmax exist (derived from RTstart/RTend).
-    - Ensures mzmin/mzmax exist (derived from MZstart/MZend).
-    - Drops ID/quality columns and invalid RTstart/RTend/MZstart/MZend.
-    - Converts RT units to minutes and overwrites the original CSV.
-    """
-
     df = pd.read_csv(file_path)
 
-    # Heuristic: determine whether RT is in seconds (raw pyopenms) or minutes (already processed)
     rt_in_seconds = None
     if "RT" in df.columns:
         rt_numeric = pd.to_numeric(df["RT"], errors="coerce")
         rt_max = rt_numeric.max(skipna=True)
-        # LC-MS RT in minutes is typically < ~200; seconds can be >200 easily.
         rt_in_seconds = bool(rt_max and rt_max > 200)
-    rt_to_seconds_factor = 1.0 if rt_in_seconds else 60.0  # if minutes -> seconds
+    rt_to_seconds_factor = 1.0 if rt_in_seconds else 60.0
     rt_to_minutes_factor = 1.0 / 60.0 if rt_in_seconds else 1.0
 
-    # Prefer true bounds from get_df() (convex hull bounding box).
-    # pyopenms may write missing bounds as +/- max float; treat those as NaN.
     for col in ["RTstart", "RTend"]:
         if col in df.columns:
             s = pd.to_numeric(df[col], errors="coerce")
             s = s.mask(s.abs() > 1e300)
-            # Convert to seconds for internal computations if file is already in minutes
             if rt_in_seconds is False:
                 s = s * rt_to_seconds_factor
             df[col] = s
@@ -192,15 +153,9 @@ def load_pyopenms_results(
     needs_mz_bounds = force_recompute_bounds or ("mzmin" not in df.columns or "mzmax" not in df.columns)
 
     if needs_rt_bounds and not has_rt_bounds:
-        raise ValueError(
-            "pyOpenMS CSV is missing RTstart/RTend (required to compute RTmin/RTmax). "
-            "Please enable report_convex_hulls=true in FeatureFindingMetabo and re-run pyOpenMS."
-        )
+        raise ValueError("pyOpenMS CSV missing RTstart/RTend")
     if needs_mz_bounds and not has_mz_bounds:
-        raise ValueError(
-            "pyOpenMS CSV is missing MZstart/MZend (required to compute mzmin/mzmax). "
-            "Please enable report_convex_hulls=true in FeatureFindingMetabo and re-run pyOpenMS."
-        )
+        raise ValueError("pyOpenMS CSV missing MZstart/MZend")
 
     if has_rt_bounds and needs_rt_bounds:
         valid_rt = df["RTstart"].notna() & df["RTend"].notna() & (df["RTstart"] <= df["RTend"])
@@ -212,58 +167,34 @@ def load_pyopenms_results(
         df.loc[valid_mz, "mzmin"] = df.loc[valid_mz, "MZstart"]
         df.loc[valid_mz, "mzmax"] = df.loc[valid_mz, "MZend"]
 
-    # Convert RT column to seconds for internal computations
     if "RT" in df.columns:
         rt_numeric = pd.to_numeric(df["RT"], errors="coerce")
         if rt_in_seconds is False:
             rt_numeric = rt_numeric * rt_to_seconds_factor
         df["RT"] = rt_numeric
 
-    # If RT is missing for some reason, compute as midpoint of bounds.
     if "RT" not in df.columns and "RTstart" in df.columns and "RTend" in df.columns:
         df["RT"] = (pd.to_numeric(df["RTstart"], errors="coerce") + pd.to_numeric(df["RTend"], errors="coerce")) / 2.0
     if "mz" not in df.columns and "MZstart" in df.columns and "MZend" in df.columns:
         df["mz"] = (pd.to_numeric(df["MZstart"], errors="coerce") + pd.to_numeric(df["MZend"], errors="coerce")) / 2.0
 
-    # Drop unhelpful/invalid columns
-    cols_to_drop = [
-        # invalid bounds (often +/- max float)
-        "RTstart",
-        "RTend",
-        "MZstart",
-        "MZend",
-        # ID-related fields
-        "peptide_sequence",
-        "peptide_score",
-        "ID_filename",
-        "ID_native_id",
-        # usually not needed
-        "charge",
-        "quality",
-        # legacy names
-        "sequence",
-    ]
+    cols_to_drop = ["RTstart", "RTend", "MZstart", "MZend", "peptide_sequence", "peptide_score", "ID_filename", "ID_native_id", "charge", "quality", "sequence"]
     df = df.drop(columns=[c for c in cols_to_drop if c in df.columns], errors="ignore")
 
-    # Normalize Feature_ID to F1..Fn
     df = normalize_feature_id(df, column="Feature_ID")
 
-    # Unit conversions / rounding
     for col in ["mz", "mzmin", "mzmax"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").round(4)
 
-    # Convert seconds->minutes if needed; otherwise keep existing minutes
     for col in ["RT", "RTmin", "RTmax"]:
         if col in df.columns:
             df[col] = (pd.to_numeric(df[col], errors="coerce") * rt_to_minutes_factor).round(3)
 
-    # Keep a minimal, model-friendly set of columns first (others are preserved after).
     base_cols = [c for c in ["Feature_ID", "mz", "mzmin", "mzmax", "RT", "RTmin", "RTmax"] if c in df.columns]
     other_cols = [c for c in df.columns if c not in base_cols]
     df = df[base_cols + other_cols]
 
-    # Overwrite original CSV in-place
     df.to_csv(file_path, index=False, float_format="%.4f")
     print(f"Processed pyOpenMS results overwritten: {file_path}")
     return df
