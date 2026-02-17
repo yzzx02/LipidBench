@@ -44,4 +44,22 @@ parameters:
     min_intensity_threshold: 1000
     min_peak_height: 5000
 
+eic_export:
+  enabled: false
+  mzml: './data/raw_mzML/SERUM-1_copy_P1-E4_1_step1_1.mzML'
+  results_dir: './Results'
+  out_dir: './Results/figures'
+  method: 'window_sum'
+  ppm: 10.0
+  max_features: 200
+  rt_pad_min: 0.2
+  width_px: 400
+  height_px: 300
+  dpi: 100
+  line_width: 1.0
+  normalize_intensity: true
+  show_axes: true
+  show_title: false
+  fixed_rt_window_min: 2.0
+
   

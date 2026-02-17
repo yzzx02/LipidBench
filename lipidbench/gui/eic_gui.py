@@ -58,7 +58,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self._feature_df_raw: Optional[pd.DataFrame] = None
         self._feature_df_view: pd.DataFrame = pd.DataFrame(columns=["Feature_ID", "mz", "RT", "RTmin", "RTmax", "PeakArea"])
         self._mzml_path: Optional[Path] = None
+        self._ms_exp = None
+        self._ms1_cache = None
         self._mzml_ready = False
+        self._last_feature_id: Optional[str] = None
+        self._trace_job_id = 0
+        self._trace_busy = False
+        self._trace_pending: Optional[tuple[float, float, Optional[float], Optional[float], str]] = None
+        self._trace_thread: Optional[QtCore.QThread] = None
+        self._trace_worker: Optional[QtCore.QObject] = None
+        self._batch_thread: Optional[QtCore.QThread] = None
+        self._batch_worker: Optional[QtCore.QObject] = None
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -189,6 +199,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.run_btn = QtWidgets.QPushButton("运行并加载")
         self.run_btn.clicked.connect(self._run_and_load)
 
+        self.export_plot_btn = QtWidgets.QPushButton("导出当前图像")
+        self.export_plot_btn.setEnabled(False)
+        self.export_plot_btn.clicked.connect(self._export_current_plot)
+
+        self.export_batch_btn = QtWidgets.QPushButton("批量导出 EIC 图")
+        self.export_batch_btn.clicked.connect(self._export_batch_eic)
+
         self.params_toggle_btn = QtWidgets.QToolButton()
         self.params_toggle_btn.setText("显示当前算法参数")
         self.params_toggle_btn.setCheckable(True)
@@ -250,6 +267,8 @@ class MainWindow(QtWidgets.QMainWindow):
         form.addRow("", self.params_container)
         form.addRow("EIC ppm", self.ppm_spin)
         form.addRow("", self.run_btn)
+        form.addRow("", self.export_plot_btn)
+        form.addRow("", self.export_batch_btn)
         self._on_input_mode_changed()
         self._on_algo_changed(self.algo_combo.currentText())
 
@@ -284,19 +303,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         try:
             from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+            from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
             from matplotlib.figure import Figure
         except Exception as e:
             msg = QtWidgets.QLabel(f"matplotlib Qt backend 不可用：{e}")
             msg.setWordWrap(True)
             plot_layout.addWidget(msg)
             self.canvas = None
+            self.toolbar = None
             self.fig = None
             self.ax = None
         else:
             self.fig = Figure(figsize=(6, 4), dpi=100)
             self.canvas = FigureCanvas(self.fig)
+            self.toolbar = NavigationToolbar(self.canvas, self)
             self.ax = self.fig.add_subplot(111)
             plot_layout.addWidget(QtWidgets.QLabel("EIC 图"))
+            plot_layout.addWidget(self.toolbar)
             plot_layout.addWidget(self.canvas, 1)
 
         splitter.addWidget(table_wrap)
@@ -626,6 +649,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_worker_finished(self, algo: str, df: pd.DataFrame) -> None:
         self.run_btn.setEnabled(True)
         self._feature_df_raw = df
+        self._last_feature_id = None
+        self.export_plot_btn.setEnabled(False)
         self._recompute_view()
 
         if self.input_mode_combo.currentData() == "single":
@@ -658,20 +683,169 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         try:
-            import pymzml  # type: ignore  # noqa: F401
+            import pyopenms as oms
         except Exception as e:
             self.status.showMessage(
-                f"GUI 进程内 pymzml 不可用：{e}。",
+                f"GUI 进程内 pyopenms 不可用：{e}。",
                 10000,
             )
+            self._ms_exp = None
+            self._ms1_cache = None
             self._mzml_ready = False
             return
 
+        try:
+            exp = oms.MSExperiment()
+            oms.MzMLFile().load(str(self._mzml_path), exp)
+        except Exception as e:
+            self.status.showMessage(f"mzML 加载失败：{e}", 10000)
+            self._ms_exp = None
+            self._ms1_cache = None
+            self._mzml_ready = False
+            return
+
+        try:
+            from lipidbench.eic.extract_eic_pyopenms import build_ms1_cache
+
+            cache = build_ms1_cache(exp, ms_level=1)
+        except Exception as e:
+            self.status.showMessage(f"MS1 缓存构建失败：{e}", 10000)
+            self._ms_exp = None
+            self._ms1_cache = None
+            self._mzml_ready = False
+            return
+
+        self._ms_exp = exp
+        self._ms1_cache = cache
         self._mzml_ready = True
-        self.status.showMessage("mzML 就绪", 3000)
+        self.status.showMessage("mzML 与 MS1 缓存已就绪", 3000)
+
+    def _export_current_plot(self) -> None:
+        if self.fig is None or self.canvas is None:
+            self.status.showMessage("当前无可导出的图像", 5000)
+            return
+
+        default_name = f"{self._last_feature_id or 'eic'}.png"
+        out_path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "保存当前 EIC 图像",
+            str(Path.cwd() / default_name),
+            "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif *.tiff)",
+        )
+        if not out_path:
+            return
+
+        self.fig.savefig(out_path, dpi=150)
+        self.status.showMessage(f"图像已导出：{out_path}", 6000)
+
+    def _export_batch_eic(self) -> None:
+        if (not self._mzml_ready) or self._mzml_path is None:
+            self.status.showMessage("请先加载可用 mzML 后再批量导出", 7000)
+            return
+        if self._ms_exp is None:
+            self.status.showMessage("mzML 未就绪，请先运行并加载", 7000)
+            return
+        if self._feature_df_view.empty:
+            self.status.showMessage("当前没有可导出的特征", 5000)
+            return
+
+        out_dir_text = QtWidgets.QFileDialog.getExistingDirectory(self, "选择 EIC 导出目录", str(Path.cwd()))
+        if not out_dir_text:
+            return
+
+        max_default = min(200, len(self._feature_df_view))
+        max_n, ok = QtWidgets.QInputDialog.getInt(
+            self,
+            "批量导出",
+            "导出前 N 个特征：",
+            value=max_default,
+            min=1,
+            max=max(1, len(self._feature_df_view)),
+            step=1,
+        )
+        if not ok:
+            return
+
+        if self._batch_thread is not None and self._batch_thread.isRunning():
+            self.status.showMessage("已有批量导出任务在运行", 5000)
+            return
+
+        class BatchExportWorker(QtCore.QObject):
+            finished = QtCore.Signal(int, str)
+            failed = QtCore.Signal(str)
+
+            def __init__(self, df: pd.DataFrame, mzml_path: Path, out_dir: Path, ppm: float, max_features: int):
+                super().__init__()
+                self.df = df
+                self.mzml_path = mzml_path
+                self.out_dir = out_dir
+                self.ppm = ppm
+                self.max_features = max_features
+
+            @QtCore.Slot()
+            def run(self) -> None:
+                try:
+                    from lipidbench.eic.export import EICImageStyle, export_eic_images_from_df
+
+                    eic_cfg = self.parent()._config_defaults.get("eic_export", {}) if self.parent() is not None else {}
+                    fixed_rt_window_min = float(eic_cfg.get("fixed_rt_window_min", 2.0))
+                    style = EICImageStyle(
+                        width_px=int(eic_cfg.get("width_px", 400)),
+                        height_px=int(eic_cfg.get("height_px", 300)),
+                        dpi=int(eic_cfg.get("dpi", 100)),
+                        line_width=float(eic_cfg.get("line_width", 1.0)),
+                        normalize_intensity=bool(eic_cfg.get("normalize_intensity", True)),
+                        show_axes=bool(eic_cfg.get("show_axes", True)),
+                        show_title=bool(eic_cfg.get("show_title", False)),
+                        fixed_rt_window_min=(fixed_rt_window_min if fixed_rt_window_min > 0 else None),
+                    )
+
+                    count = export_eic_images_from_df(
+                        df=self.df,
+                        mzml_path=self.mzml_path,
+                        out_dir=self.out_dir,
+                        method="window_sum",
+                        ppm=self.ppm,
+                        max_features=self.max_features,
+                        rt_pad_min=0.2,
+                        image_style=style,
+                    )
+                except Exception as e:
+                    self.failed.emit(str(e))
+                    return
+                self.finished.emit(int(count), str(self.out_dir))
+
+        self.export_batch_btn.setEnabled(False)
+        self.status.showMessage("批量导出中…")
+        self._batch_thread = QtCore.QThread(self)
+        self._batch_worker = BatchExportWorker(
+            df=self._feature_df_view.copy(),
+            mzml_path=self._mzml_path,
+            out_dir=Path(out_dir_text),
+            ppm=float(self.ppm_spin.value()),
+            max_features=int(max_n),
+        )
+        self._batch_worker.moveToThread(self._batch_thread)
+        self._batch_thread.started.connect(self._batch_worker.run)
+        self._batch_worker.finished.connect(self._on_batch_export_finished)
+        self._batch_worker.failed.connect(self._on_batch_export_failed)
+        self._batch_worker.finished.connect(self._batch_thread.quit)
+        self._batch_worker.failed.connect(self._batch_thread.quit)
+        self._batch_thread.finished.connect(self._batch_worker.deleteLater)
+        self._batch_thread.finished.connect(self._batch_thread.deleteLater)
+        self._batch_thread.start()
+
+    def _on_batch_export_finished(self, count: int, out_dir: str) -> None:
+        self.export_batch_btn.setEnabled(True)
+        self.status.showMessage(f"批量导出完成：{count} 张 -> {out_dir}", 8000)
+
+    def _on_batch_export_failed(self, msg: str) -> None:
+        self.export_batch_btn.setEnabled(True)
+        QtWidgets.QMessageBox.critical(self, "批量导出失败", msg)
+        self.status.showMessage(f"批量导出失败：{msg}", 10000)
 
     def _on_row_selected(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
-        if (not self._mzml_ready) or self._mzml_path is None or self.canvas is None or self.ax is None:
+        if (not self._mzml_ready) or self._mzml_path is None or self._ms1_cache is None or self.canvas is None or self.ax is None:
             return
         if self._feature_df_view.empty:
             return
@@ -692,33 +866,123 @@ class MainWindow(QtWidgets.QMainWindow):
         if mz is None:
             return
 
-        from lipidbench.eic.extract_eic_pymzml import extract_eic_nearest_ppm_from_mzml
-
         ppm = float(self.ppm_spin.value())
         pad = 0.2
         rt_min_limit = (rtmin - pad) if rtmin is not None else None
         rt_max_limit = (rtmax + pad) if rtmax is not None else None
 
-        try:
-            trace = extract_eic_nearest_ppm_from_mzml(
-                self._mzml_path,
-                target_mz=mz,
-                ppm=ppm,
-                rt_min_limit=rt_min_limit,
-                rt_max_limit=rt_max_limit,
-                ms_level=1,
-            )
-        except Exception as e:
-            self.status.showMessage(f"EIC 提取失败：{e}", 10000)
+        payload = (float(mz), ppm, rt_min_limit, rt_max_limit, feature_id)
+        if self._trace_busy:
+            self._trace_pending = payload
+            return
+        self._start_trace_job(*payload)
+
+    def _start_trace_job(
+        self,
+        mz: float,
+        ppm: float,
+        rt_min_limit: Optional[float],
+        rt_max_limit: Optional[float],
+        feature_id: str,
+    ) -> None:
+        self._trace_busy = True
+        self._trace_job_id += 1
+        job_id = self._trace_job_id
+
+        class TraceWorker(QtCore.QObject):
+            finished = QtCore.Signal(int, object, object, str)
+            failed = QtCore.Signal(int, str)
+
+            def __init__(self, cache: object, mz: float, ppm: float, rt_min_limit: Optional[float], rt_max_limit: Optional[float], feature_id: str, job_id: int):
+                super().__init__()
+                self.cache = cache
+                self.mz = mz
+                self.ppm = ppm
+                self.rt_min_limit = rt_min_limit
+                self.rt_max_limit = rt_max_limit
+                self.feature_id = feature_id
+                self.job_id = job_id
+
+            @QtCore.Slot()
+            def run(self) -> None:
+                try:
+                    from lipidbench.eic.extract_eic_pyopenms import extract_eic_from_cache
+
+                    trace = extract_eic_from_cache(
+                        self.cache,
+                        target_mz=self.mz,
+                        ppm=self.ppm,
+                        rt_min_limit=self.rt_min_limit,
+                        rt_max_limit=self.rt_max_limit,
+                        method="nearest",
+                    )
+                except Exception as e:
+                    self.failed.emit(self.job_id, str(e))
+                    return
+                self.finished.emit(self.job_id, trace.rt_min, trace.intensity, self.feature_id)
+
+        self._trace_thread = QtCore.QThread(self)
+        self._trace_worker = TraceWorker(
+            cache=self._ms1_cache,
+            mz=mz,
+            ppm=ppm,
+            rt_min_limit=rt_min_limit,
+            rt_max_limit=rt_max_limit,
+            feature_id=feature_id,
+            job_id=job_id,
+        )
+        self._trace_worker.moveToThread(self._trace_thread)
+        self._trace_thread.started.connect(self._trace_worker.run)
+        self._trace_worker.finished.connect(self._on_trace_ready)
+        self._trace_worker.failed.connect(self._on_trace_failed)
+        self._trace_worker.finished.connect(self._trace_thread.quit)
+        self._trace_worker.failed.connect(self._trace_thread.quit)
+        self._trace_thread.finished.connect(self._trace_worker.deleteLater)
+        self._trace_thread.finished.connect(self._trace_thread.deleteLater)
+        self._trace_thread.start()
+
+    def _on_trace_ready(self, job_id: int, rt_values: object, int_values: object, feature_id: str) -> None:
+        self._trace_busy = False
+        if job_id != self._trace_job_id:
+            if self._trace_pending is not None:
+                pending = self._trace_pending
+                self._trace_pending = None
+                self._start_trace_job(*pending)
+            return
+        if self.ax is None or self.fig is None or self.canvas is None:
+            if self._trace_pending is not None:
+                pending = self._trace_pending
+                self._trace_pending = None
+                self._start_trace_job(*pending)
             return
 
         self.ax.clear()
-        self.ax.plot(trace.rt_min, trace.intensity, linewidth=1.0)
+        self.ax.plot(rt_values, int_values, linewidth=1.0)
         self.ax.set_xlabel("RT (min)")
         self.ax.set_ylabel("Intensity")
         self.ax.set_title(feature_id)
         self.fig.tight_layout()
         self.canvas.draw_idle()
+        self._last_feature_id = feature_id
+        self.export_plot_btn.setEnabled(True)
+        if self._trace_pending is not None:
+            pending = self._trace_pending
+            self._trace_pending = None
+            self._start_trace_job(*pending)
+
+    def _on_trace_failed(self, job_id: int, msg: str) -> None:
+        self._trace_busy = False
+        if job_id != self._trace_job_id:
+            if self._trace_pending is not None:
+                pending = self._trace_pending
+                self._trace_pending = None
+                self._start_trace_job(*pending)
+            return
+        self.status.showMessage(f"EIC 提取失败：{msg}", 10000)
+        if self._trace_pending is not None:
+            pending = self._trace_pending
+            self._trace_pending = None
+            self._start_trace_job(*pending)
 
 
 def main() -> int:
