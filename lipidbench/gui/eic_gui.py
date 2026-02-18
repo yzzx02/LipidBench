@@ -2,6 +2,7 @@ from __future__ import annotations
 import sys
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Optional, Any
 import copy
 import shutil
@@ -59,7 +60,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._feature_df_view: pd.DataFrame = pd.DataFrame(columns=["Feature_ID", "mz", "RT", "RTmin", "RTmax", "PeakArea"])
         self._mzml_path: Optional[Path] = None
         self._ms_exp = None
-        self._ms1_cache = None
         self._mzml_ready = False
         self._last_feature_id: Optional[str] = None
         self._trace_job_id = 0
@@ -204,7 +204,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_plot_btn.clicked.connect(self._export_current_plot)
 
         self.export_batch_btn = QtWidgets.QPushButton("批量导出 EIC 图")
-        self.export_batch_btn.clicked.connect(self._export_batch_eic)
+        self.export_batch_btn.clicked.connect(lambda: self._export_batch_eic(auto=False))
+
+        self.auto_export_check = QtWidgets.QCheckBox("特征检测完成后自动导出EIC图")
+        self.auto_export_check.setChecked(False)
+
+        self.export_scope_combo = QtWidgets.QComboBox()
+        self.export_scope_combo.addItem("全部", "all")
+        self.export_scope_combo.addItem("前N个", "topn")
+
+        self.export_topn_spin = QtWidgets.QSpinBox()
+        self.export_topn_spin.setRange(1, 1000000)
+        self.export_topn_spin.setValue(200)
+        self.export_scope_combo.currentIndexChanged.connect(
+            lambda _: self.export_topn_spin.setEnabled(self.export_scope_combo.currentData() == "topn")
+        )
+        self.export_topn_spin.setEnabled(False)
 
         self.params_toggle_btn = QtWidgets.QToolButton()
         self.params_toggle_btn.setText("显示当前算法参数")
@@ -266,6 +281,9 @@ class MainWindow(QtWidgets.QMainWindow):
         form.addRow("参数", self.params_toggle_btn)
         form.addRow("", self.params_container)
         form.addRow("EIC ppm", self.ppm_spin)
+        form.addRow("导出时机", self.auto_export_check)
+        form.addRow("导出范围", self.export_scope_combo)
+        form.addRow("导出N", self.export_topn_spin)
         form.addRow("", self.run_btn)
         form.addRow("", self.export_plot_btn)
         form.addRow("", self.export_batch_btn)
@@ -669,6 +687,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.status.showMessage("运行完成并加载", 5000)
 
+        if self.auto_export_check.isChecked():
+            self._export_batch_eic(auto=True)
+
     def _recompute_view(self) -> None:
         if self._feature_df_raw is None:
             return
@@ -690,7 +711,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 10000,
             )
             self._ms_exp = None
-            self._ms1_cache = None
             self._mzml_ready = False
             return
 
@@ -700,25 +720,12 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception as e:
             self.status.showMessage(f"mzML 加载失败：{e}", 10000)
             self._ms_exp = None
-            self._ms1_cache = None
-            self._mzml_ready = False
-            return
-
-        try:
-            from lipidbench.eic.extract_eic_pyopenms import build_ms1_cache
-
-            cache = build_ms1_cache(exp, ms_level=1)
-        except Exception as e:
-            self.status.showMessage(f"MS1 缓存构建失败：{e}", 10000)
-            self._ms_exp = None
-            self._ms1_cache = None
             self._mzml_ready = False
             return
 
         self._ms_exp = exp
-        self._ms1_cache = cache
         self._mzml_ready = True
-        self.status.showMessage("mzML 与 MS1 缓存已就绪", 3000)
+        self.status.showMessage("mzML 已就绪", 3000)
 
     def _export_current_plot(self) -> None:
         if self.fig is None or self.canvas is None:
@@ -738,7 +745,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fig.savefig(out_path, dpi=150)
         self.status.showMessage(f"图像已导出：{out_path}", 6000)
 
-    def _export_batch_eic(self) -> None:
+    def _export_batch_eic(self, auto: bool = False) -> None:
         if (not self._mzml_ready) or self._mzml_path is None:
             self.status.showMessage("请先加载可用 mzML 后再批量导出", 7000)
             return
@@ -749,22 +756,27 @@ class MainWindow(QtWidgets.QMainWindow):
             self.status.showMessage("当前没有可导出的特征", 5000)
             return
 
-        out_dir_text = QtWidgets.QFileDialog.getExistingDirectory(self, "选择 EIC 导出目录", str(Path.cwd()))
-        if not out_dir_text:
-            return
+        results_base_text = self.results_dir_edit.text().strip()
+        if results_base_text:
+            base_dir = normalize_results_base_dir(Path(results_base_text), self.algo_combo.currentText().strip().lower())
+        else:
+            base_dir = Path.cwd()
+        out_dir = (base_dir / "eic_export").resolve()
 
-        max_default = min(200, len(self._feature_df_view))
-        max_n, ok = QtWidgets.QInputDialog.getInt(
-            self,
-            "批量导出",
-            "导出前 N 个特征：",
-            value=max_default,
-            min=1,
-            max=max(1, len(self._feature_df_view)),
-            step=1,
-        )
-        if not ok:
-            return
+        if self.export_scope_combo.currentData() == "all":
+            max_n = len(self._feature_df_view)
+        else:
+            max_n = min(int(self.export_topn_spin.value()), len(self._feature_df_view))
+
+        if (not auto) and max_n >= 1000:
+            btn = QtWidgets.QMessageBox.question(
+                self,
+                "确认导出",
+                f"即将导出 {max_n} 张EIC图，是否继续？",
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+            )
+            if btn != QtWidgets.QMessageBox.StandardButton.Yes:
+                return
 
         if self._batch_thread is not None and self._batch_thread.isRunning():
             self.status.showMessage("已有批量导出任务在运行", 5000)
@@ -785,31 +797,29 @@ class MainWindow(QtWidgets.QMainWindow):
             @QtCore.Slot()
             def run(self) -> None:
                 try:
-                    from lipidbench.eic.export import EICImageStyle, export_eic_images_from_df
+                    from lipidbench.eic.extract_eic_pyopenms import build as build_eic
 
                     eic_cfg = self.parent()._config_defaults.get("eic_export", {}) if self.parent() is not None else {}
-                    fixed_rt_window_min = float(eic_cfg.get("fixed_rt_window_min", 2.0))
-                    style = EICImageStyle(
-                        width_px=int(eic_cfg.get("width_px", 400)),
-                        height_px=int(eic_cfg.get("height_px", 300)),
-                        dpi=int(eic_cfg.get("dpi", 100)),
-                        line_width=float(eic_cfg.get("line_width", 1.0)),
-                        normalize_intensity=bool(eic_cfg.get("normalize_intensity", True)),
-                        show_axes=bool(eic_cfg.get("show_axes", True)),
-                        show_title=bool(eic_cfg.get("show_title", False)),
-                        fixed_rt_window_min=(fixed_rt_window_min if fixed_rt_window_min > 0 else None),
+                    method = str(eic_cfg.get("method", "nearest")).strip().lower()
+                    unit = str(eic_cfg.get("unit", "ppm")).strip()
+                    sigma = float(eic_cfg.get("smooth_sigma", 0.0))
+
+                    df_info = self.df.copy()
+                    if "RT" not in df_info.columns:
+                        raise ValueError("批量导出需要 RT 列")
+                    df_info = df_info[["Feature_ID", "mz", "RT"]].dropna(subset=["mz", "RT"]).head(self.max_features)
+
+                    eic_args = SimpleNamespace(
+                        processes_number=1,
+                        method=("window_sum" if method == "window_sum" else "nearest"),
+                        unit=("Da" if unit.lower() == "da" else "ppm"),
+                        tolerance=float(self.ppm),
+                        images_path=str(self.out_dir),
+                        smooth_sigma=sigma,
                     )
 
-                    count = export_eic_images_from_df(
-                        df=self.df,
-                        mzml_path=self.mzml_path,
-                        out_dir=self.out_dir,
-                        method="window_sum",
-                        ppm=self.ppm,
-                        max_features=self.max_features,
-                        rt_pad_min=0.2,
-                        image_style=style,
-                    )
+                    _ = build_eic(paths=[self.mzml_path], info=df_info, plot=True, args=eic_args)
+                    count = len(df_info)
                 except Exception as e:
                     self.failed.emit(str(e))
                     return
@@ -821,7 +831,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._batch_worker = BatchExportWorker(
             df=self._feature_df_view.copy(),
             mzml_path=self._mzml_path,
-            out_dir=Path(out_dir_text),
+            out_dir=out_dir,
             ppm=float(self.ppm_spin.value()),
             max_features=int(max_n),
         )
@@ -845,7 +855,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status.showMessage(f"批量导出失败：{msg}", 10000)
 
     def _on_row_selected(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
-        if (not self._mzml_ready) or self._mzml_path is None or self._ms1_cache is None or self.canvas is None or self.ax is None:
+        if (not self._mzml_ready) or self._mzml_path is None or self._ms_exp is None or self.canvas is None or self.ax is None:
             return
         if self._feature_df_view.empty:
             return
@@ -893,9 +903,9 @@ class MainWindow(QtWidgets.QMainWindow):
             finished = QtCore.Signal(int, object, object, str)
             failed = QtCore.Signal(int, str)
 
-            def __init__(self, cache: object, mz: float, ppm: float, rt_min_limit: Optional[float], rt_max_limit: Optional[float], feature_id: str, job_id: int):
+            def __init__(self, exp: object, mz: float, ppm: float, rt_min_limit: Optional[float], rt_max_limit: Optional[float], feature_id: str, job_id: int):
                 super().__init__()
-                self.cache = cache
+                self.exp = exp
                 self.mz = mz
                 self.ppm = ppm
                 self.rt_min_limit = rt_min_limit
@@ -906,15 +916,17 @@ class MainWindow(QtWidgets.QMainWindow):
             @QtCore.Slot()
             def run(self) -> None:
                 try:
-                    from lipidbench.eic.extract_eic_pyopenms import extract_eic_from_cache
+                    from lipidbench.eic.extract_eic_pyopenms import extract_eic_trace
 
-                    trace = extract_eic_from_cache(
-                        self.cache,
+                    trace = extract_eic_trace(
+                        self.exp,
                         target_mz=self.mz,
-                        ppm=self.ppm,
+                        tolerance=self.ppm,
+                        unit="ppm",
                         rt_min_limit=self.rt_min_limit,
                         rt_max_limit=self.rt_max_limit,
                         method="nearest",
+                        ms_level=1,
                     )
                 except Exception as e:
                     self.failed.emit(self.job_id, str(e))
@@ -923,7 +935,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._trace_thread = QtCore.QThread(self)
         self._trace_worker = TraceWorker(
-            cache=self._ms1_cache,
+            exp=self._ms_exp,
             mz=mz,
             ppm=ppm,
             rt_min_limit=rt_min_limit,
