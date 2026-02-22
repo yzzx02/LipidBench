@@ -104,9 +104,9 @@ def extract_eic(
     """
 
     try:
-        from pyopenms import MSExperiment, MzMLFile, PeakFileOptions
+        import pymzml  # type: ignore
     except ImportError as e:
-        raise RuntimeError(f"pyopenms is required for EIC extraction: {e}")
+        raise RuntimeError(f"pymzml is required for EIC extraction: {e}")
 
     if not (hasattr(df_info, "columns") and "Feature_ID" in df_info.columns and "mz" in df_info.columns):
         raise ValueError("df_info 必须是包含 'Feature_ID' 和 'mz' 列的 DataFrame")
@@ -120,22 +120,38 @@ def extract_eic(
     if method_norm not in {"nearest", "window_sum"}:
         raise ValueError("method 仅支持 'nearest' 或 'window_sum'")
 
-    exp = MSExperiment()
-    options = PeakFileOptions()
-    options.setMSLevels([1])
-    mzml = MzMLFile()
-    mzml.setOptions(options)
-    mzml.load(str(path), exp)
-
     rt_vals: list[float] = []
     traces: list[list[float]] = [[] for _ in range(len(mz_targets))]
 
-    for spec in exp:
-        if int(spec.getMSLevel()) != 1:
+    reader = pymzml.run.Reader(str(path))
+    for spec in reader:
+        ms_level = int(getattr(spec, "ms_level", 1) or 1)
+        if ms_level != 1:
             continue
 
-        rt_vals.append(float(spec.getRT()) / 60.0)
-        mzs_arr, ints_arr = spec.get_peaks()
+        try:
+            rt_min = float(spec.scan_time_in_minutes())
+        except Exception:
+            continue
+
+        try:
+            peaks = spec.peaks("centroided")
+        except Exception:
+            peaks = spec.peaks("raw")
+
+        if peaks is None or len(peaks) == 0:
+            mzs_arr = np.asarray([], dtype=np.float64)
+            ints_arr = np.asarray([], dtype=np.float64)
+        else:
+            arr = np.asarray(peaks, dtype=np.float64)
+            if arr.ndim != 2 or arr.shape[1] < 2:
+                mzs_arr = np.asarray([], dtype=np.float64)
+                ints_arr = np.asarray([], dtype=np.float64)
+            else:
+                mzs_arr = arr[:, 0]
+                ints_arr = arr[:, 1]
+
+        rt_vals.append(rt_min)
         if mzs_arr.size == 0:
             for k in range(len(mz_targets)):
                 traces[k].append(0.0)
@@ -164,7 +180,7 @@ def extract_eic(
     return matrix
 
 
-def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0):
+def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: float = 2.0, image_width_px: int = 400, image_height_px: int = 300, image_dpi: int = 100):
     eic = eic_list[index]
     rt = eic[0]
     feature_counts = len(eic) - 1
@@ -185,9 +201,22 @@ def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0):
     for k in range(feature_counts):
         intensity = eic[k + 1]
         feature_id = str(df_info.iloc[k]["Feature_ID"])
-        calc_intensity, cal_rt = calc_coordinate(records, intensity, rt, k, windows_size=2)
+        feature_rt = float(pd.to_numeric(df_info.iloc[k]["RT"], errors="coerce"))
+        calc_intensity, cal_rt = calc_coordinate(records, intensity, rt, k, windows_size=float(window_min))
         smooth_intensity, smooth_rt = gussian_smooth(calc_intensity, cal_rt, sigma)
-        plot_eic(smooth_rt, smooth_intensity, feature_id, folder_path)
+        half = float(window_min) / 2.0
+        xlim = (feature_rt - half, feature_rt + half)
+        plot_eic(
+            smooth_rt,
+            smooth_intensity,
+            feature_id,
+            folder_path,
+            xlim=xlim,
+            width_px=int(image_width_px),
+            height_px=int(image_height_px),
+            dpi=int(image_dpi),
+            normalize_y=False,
+        )
 
 
 def time_master(func):
@@ -208,8 +237,8 @@ def _extract_worker(payload):
 
 
 def _draw_worker(payload):
-    i, path_list, xic_list, df_info, image_path, sigma = payload
-    draw_eic(i, path_list, xic_list, df_info, image_path, sigma)
+    i, path_list, xic_list, df_info, image_path, sigma, window_min, image_width_px, image_height_px, image_dpi = payload
+    draw_eic(i, path_list, xic_list, df_info, image_path, sigma, window_min, image_width_px, image_height_px, image_dpi)
 
 
 @time_master
@@ -260,15 +289,34 @@ def build(paths, info, plot, args):
     if plot:
         image_path = getattr(args, "images_path", "Results/eic")
         sigma = float(getattr(args, "smooth_sigma", 0))
+        # 固定图像参数（深度学习输入一致性）
+        window_min = 2.0
+        image_width_px = 400
+        image_height_px = 300
+        image_dpi = 100
 
         if "RT" not in df_info.columns:
             raise ValueError("plot=True 时 info 必须包含 'RT' 列")
 
         if processes_number == 1:
             for i in range(len(xic_list)):
-                draw_eic(i, path_list, xic_list, df_info, image_path, sigma=sigma)
+                draw_eic(
+                    i,
+                    path_list,
+                    xic_list,
+                    df_info,
+                    image_path,
+                    sigma=sigma,
+                    window_min=window_min,
+                    image_width_px=image_width_px,
+                    image_height_px=image_height_px,
+                    image_dpi=image_dpi,
+                )
         else:
-            draw_tasks = [(i, path_list, xic_list, df_info, image_path, sigma) for i in range(len(xic_list))]
+            draw_tasks = [
+                (i, path_list, xic_list, df_info, image_path, sigma, window_min, image_width_px, image_height_px, image_dpi)
+                for i in range(len(xic_list))
+            ]
             with mp.Pool(processes=processes_number) as pool:
                 pool.map(_draw_worker, draw_tasks)
 

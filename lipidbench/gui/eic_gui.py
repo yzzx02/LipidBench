@@ -7,6 +7,7 @@ from typing import Optional, Any
 import copy
 import shutil
 import tempfile
+import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
@@ -16,16 +17,29 @@ from lipidbench.utils.feature_table_io import (
     find_feature_table,
     load_feature_table,
     normalize_results_base_dir,
+    standardize_rt_columns_for_display,
 )
+from lipidbench.utils.feature_alignment import align_feature_tables, load_and_standardize_table, missing_features_for_algo
+from lipidbench.utils.peak_attributes import compute_peak_attributes
 
 
-def _check_pyopenms_available() -> tuple[bool, str]:
+def _check_pyopenms_available(python_executable: Optional[str] = None) -> tuple[bool, str]:
+    exe = str(python_executable).strip() if python_executable else sys.executable
+    check_code = (
+        "import os,site,sysconfig;"
+        "c=[];"
+        "[c.extend([__import__('pathlib').Path(sp)/'pyopenms', __import__('pathlib').Path(sp)/'pyopenms.libs']) for sp in site.getsitepackages()];"
+        "pl=sysconfig.get_paths().get('platlib');"
+        "c.extend([__import__('pathlib').Path(pl)/'pyopenms', __import__('pathlib').Path(pl)/'pyopenms.libs']) if pl else None;"
+        "[(hasattr(os,'add_dll_directory') and os.add_dll_directory(str(d))) for d in c if getattr(d,'exists',lambda:False)()];"
+        "import pyopenms;print(pyopenms.__version__)"
+    )
     try:
         proc = subprocess.run(
             [
-                sys.executable,
+                exe,
                 "-c",
-                "import pyopenms,sys; print(pyopenms.__version__)",
+                check_code,
             ],
             capture_output=True,
             text=True,
@@ -36,11 +50,29 @@ def _check_pyopenms_available() -> tuple[bool, str]:
     except Exception as e:
         detail = (
             f"pyopenms 检查失败（子进程）。\n"
-            f"Python: {sys.version.split()[0]}\n"
-            f"解释器: {sys.executable}\n"
+            f"解释器: {exe}\n"
             f"原始错误: {e}"
         )
         return False, detail
+
+
+class _SimpleSpectrum:
+    """Lightweight spectrum adapter for EIC extraction fallback."""
+
+    def __init__(self, rt_min: float, mz: np.ndarray, intensity: np.ndarray, ms_level: int = 1):
+        self._rt_sec = float(rt_min) * 60.0
+        self._mz = np.asarray(mz, dtype=np.float64)
+        self._intensity = np.asarray(intensity, dtype=np.float64)
+        self._ms_level = int(ms_level)
+
+    def getMSLevel(self) -> int:
+        return self._ms_level
+
+    def getRT(self) -> float:
+        return self._rt_sec
+
+    def get_peaks(self):
+        return self._mz, self._intensity
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -71,13 +103,29 @@ class MainWindow(QtWidgets.QMainWindow):
         self._batch_worker: Optional[QtCore.QObject] = None
         self._build_ui()
 
+    def _get_pyopenms_python(self) -> Optional[str]:
+        runtime_cfg = self._config_defaults.get("runtime", {})
+        if not isinstance(runtime_cfg, dict):
+            return None
+        candidate = str(runtime_cfg.get("pyopenms_python", "")).strip()
+        if not candidate:
+            return None
+        p = Path(candidate)
+        if not p.exists():
+            return None
+        return str(p)
+
     def _build_ui(self) -> None:
         central = QtWidgets.QWidget()
         self.setCentralWidget(central)
 
         header_box = QtWidgets.QGroupBox("运行")
-        form = QtWidgets.QFormLayout(header_box)
-        form.setContentsMargins(10, 8, 10, 8)
+        header_box.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Preferred,
+            QtWidgets.QSizePolicy.Policy.Maximum,
+        )
+        header_layout = QtWidgets.QVBoxLayout(header_box)
+        header_layout.setContentsMargins(10, 8, 10, 8)
 
         self.algo_combo = QtWidgets.QComboBox()
         self.algo_combo.addItems(["asari", "pyopenms", "xcms", "msdial"])
@@ -95,8 +143,8 @@ class MainWindow(QtWidgets.QMainWindow):
         mzml_row = QtWidgets.QHBoxLayout()
         mzml_row.addWidget(self.mzml_path_edit, 1)
         mzml_row.addWidget(self.mzml_browse_btn)
-        mzml_row_w = QtWidgets.QWidget()
-        mzml_row_w.setLayout(mzml_row)
+        self.mzml_row_w = QtWidgets.QWidget()
+        self.mzml_row_w.setLayout(mzml_row)
 
         self.mzml_dir_edit = QtWidgets.QLineEdit()
         self.mzml_dir_edit.setPlaceholderText("选择包含多个 mzML 的目录")
@@ -221,6 +269,11 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.export_topn_spin.setEnabled(False)
 
+        self.export_all_attr_btn = QtWidgets.QPushButton("导出峰属性（当前算法全部特征）")
+        self.export_all_attr_btn.clicked.connect(self._export_all_peak_attributes)
+        self.export_missing_attr_btn = QtWidgets.QPushButton("导出峰属性（多算法对齐后未检出）")
+        self.export_missing_attr_btn.clicked.connect(self._export_missing_peak_attributes)
+
         self.params_toggle_btn = QtWidgets.QToolButton()
         self.params_toggle_btn.setText("显示当前算法参数")
         self.params_toggle_btn.setCheckable(True)
@@ -272,21 +325,46 @@ class MainWindow(QtWidgets.QMainWindow):
         self.params_stack.addWidget(xcms_page)     # 2
         self.params_stack.addWidget(msdial_page)   # 3
 
-        form.addRow("算法", self.algo_combo)
-        form.addRow("输入模式", self.input_mode_combo)
-        form.addRow("mzML", mzml_row_w)
-        form.addRow("mzML目录", self.mzml_dir_row_w)
-        form.addRow("输出目录", out_row_w)
-        form.addRow("MS-DIAL 表", self.msdial_row_w)
-        form.addRow("参数", self.params_toggle_btn)
-        form.addRow("", self.params_container)
-        form.addRow("EIC ppm", self.ppm_spin)
-        form.addRow("导出时机", self.auto_export_check)
-        form.addRow("导出范围", self.export_scope_combo)
-        form.addRow("导出N", self.export_topn_spin)
-        form.addRow("", self.run_btn)
-        form.addRow("", self.export_plot_btn)
-        form.addRow("", self.export_batch_btn)
+        tabs = QtWidgets.QTabWidget()
+
+        basic_tab = QtWidgets.QWidget()
+        basic_form = QtWidgets.QFormLayout(basic_tab)
+        basic_form.setContentsMargins(6, 6, 6, 6)
+        basic_form.addRow("算法", self.algo_combo)
+        basic_form.addRow("输入模式", self.input_mode_combo)
+        basic_form.addRow("mzML", self.mzml_row_w)
+        basic_form.addRow("mzML目录", self.mzml_dir_row_w)
+        basic_form.addRow("输出目录", out_row_w)
+        basic_form.addRow("MS-DIAL 表", self.msdial_row_w)
+        basic_form.addRow("EIC ppm", self.ppm_spin)
+
+        params_tab = QtWidgets.QWidget()
+        params_layout_tab = QtWidgets.QVBoxLayout(params_tab)
+        params_layout_tab.setContentsMargins(6, 6, 6, 6)
+        params_layout_tab.addWidget(self.params_toggle_btn, 0)
+        params_layout_tab.addWidget(self.params_container, 0)
+        params_layout_tab.addStretch(1)
+
+        export_tab = QtWidgets.QWidget()
+        export_form = QtWidgets.QFormLayout(export_tab)
+        export_form.setContentsMargins(6, 6, 6, 6)
+        export_form.addRow("导出时机", self.auto_export_check)
+        export_form.addRow("导出范围", self.export_scope_combo)
+        export_form.addRow("导出N", self.export_topn_spin)
+        export_form.addRow("", self.export_batch_btn)
+        export_form.addRow("", self.export_all_attr_btn)
+        export_form.addRow("", self.export_missing_attr_btn)
+
+        tabs.addTab(basic_tab, "基础")
+        tabs.addTab(params_tab, "算法参数")
+        tabs.addTab(export_tab, "导出")
+
+        btn_row = QtWidgets.QHBoxLayout()
+        btn_row.addWidget(self.run_btn)
+        btn_row.addWidget(self.export_plot_btn)
+
+        header_layout.addWidget(tabs)
+        header_layout.addLayout(btn_row)
         self._on_input_mode_changed()
         self._on_algo_changed(self.algo_combo.currentText())
 
@@ -334,6 +412,8 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.fig = Figure(figsize=(6, 4), dpi=100)
             self.canvas = FigureCanvas(self.fig)
+            self.canvas.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+            self.canvas.customContextMenuRequested.connect(self._on_canvas_context_menu)
             self.toolbar = NavigationToolbar(self.canvas, self)
             self.ax = self.fig.add_subplot(111)
             plot_layout.addWidget(QtWidgets.QLabel("EIC 图"))
@@ -394,8 +474,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_input_mode_changed(self) -> None:
         mode = self.input_mode_combo.currentData()
         is_folder = mode == "folder"
-        self.mzml_path_edit.setVisible(not is_folder)
-        self.mzml_browse_btn.setVisible(not is_folder)
+        self.mzml_row_w.setVisible(not is_folder)
         self.mzml_dir_row_w.setVisible(is_folder)
 
     def _collect_algo_params(self, algo: str) -> dict[str, float | str | bool]:
@@ -476,15 +555,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 msdial_xlsx=Path(xlsx_text),
                 algo_params=algo_params,
                 asari_table_preference=asari_table_preference,
+                pyopenms_python=None,
             )
             return
 
         if algo == "pyopenms":
-            ok, detail = _check_pyopenms_available()
+            pyopenms_python = self._get_pyopenms_python()
+            ok, detail = _check_pyopenms_available(pyopenms_python)
             if not ok:
                 QtWidgets.QMessageBox.critical(self, "pyopenms 无法导入", detail)
                 self.status.showMessage("pyopenms 导入失败（已弹窗显示详情）", 10000)
                 return
+            if pyopenms_python:
+                self.status.showMessage(f"pyopenms 将使用外部解释器: {pyopenms_python}", 6000)
 
         self._start_worker(
             algo=algo,
@@ -495,6 +578,7 @@ class MainWindow(QtWidgets.QMainWindow):
             msdial_xlsx=None,
             algo_params=algo_params,
             asari_table_preference=asari_table_preference,
+            pyopenms_python=self._get_pyopenms_python(),
         )
 
     def _start_worker(
@@ -508,6 +592,7 @@ class MainWindow(QtWidgets.QMainWindow):
         msdial_xlsx: Optional[Path],
         algo_params: dict[str, float | str | bool],
         asari_table_preference: str,
+        pyopenms_python: Optional[str],
     ) -> None:
         self.run_btn.setEnabled(False)
         self.status.showMessage("运行算法中…")
@@ -526,6 +611,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 msdial_xlsx: Optional[Path],
                 algo_params: dict[str, float | str | bool],
                 asari_table_preference: str,
+                pyopenms_python: Optional[str],
             ):
                 super().__init__()
                 self.algo = algo
@@ -536,6 +622,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.msdial_xlsx = msdial_xlsx
                 self.algo_params = algo_params
                 self.asari_table_preference = asari_table_preference
+                self.pyopenms_python = pyopenms_python
 
             @QtCore.Slot()
             def run(self) -> None:
@@ -547,13 +634,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.finished.emit(self.algo, df)
 
             def _run_impl(self) -> pd.DataFrame:
-                import subprocess
-                import sys
                 from lipidbench.utils.config_io import load_config
                 from lipidbench.utils.data_io import load_msdial_results, load_xcms_results, load_pyopenms_results
                 from lipidbench.runners.run_xcms import extract_xcms_params, run_xcms
+                from lipidbench.runners.run_pyopenms import extract_pyopenms_params, run_pyopenms
                 from lipidbench.runners.run_asari import run_asari_pipeline
-                from lipidbench.utils.config_io import get_base_dir
 
                 config = load_config()
                 algo = self.algo
@@ -612,43 +697,41 @@ class MainWindow(QtWidgets.QMainWindow):
                         return load_feature_table(feature_path, algo)
 
                 if algo == "pyopenms":
-                    base_dir = get_base_dir()
-                    cli = base_dir / "run_algo_single.py"
-                    cmd = [
-                        sys.executable,
-                        str(cli),
-                        "--algo",
-                        "pyopenms",
-                        "--results-dir",
-                        str(results_dir),
-                    ]
-                    if self.input_mode == "folder" and self.mzml_dir is not None:
-                        cmd += ["--mzml-dir", str(self.mzml_dir)]
-                    else:
-                        cmd += ["--mzml", str(self.input_files[0])]
-                    if "mz_tol" in self.algo_params:
-                        cmd += ["--pyopenms-ppm", str(self.algo_params["mz_tol"])]
-                    if "noise" in self.algo_params:
-                        cmd += ["--pyopenms-noise", str(self.algo_params["noise"])]
-                    if "sn" in self.algo_params:
-                        cmd += ["--pyopenms-sn", str(self.algo_params["sn"])]
-                    if "min_fwhm" in self.algo_params:
-                        cmd += ["--pyopenms-min-fwhm", str(self.algo_params["min_fwhm"])]
-                    if "max_fwhm" in self.algo_params:
-                        cmd += ["--pyopenms-max-fwhm", str(self.algo_params["max_fwhm"])]
-                    proc = subprocess.run(cmd, capture_output=True, text=True)
-                    if proc.returncode != 0:
-                        err = (proc.stderr or proc.stdout or "").strip()
-                        raise RuntimeError(f"pyopenms 子进程运行失败：{err}")
-                    out_file = results_dir / "pyopenms" / "pyopenms_features.csv"
-                    if not out_file.exists():
-                        raise FileNotFoundError(f"pyopenms 输出不存在: {out_file}")
-                    return load_feature_table(out_file, algo)
+                    with tempfile.TemporaryDirectory(prefix="tmp_mzml_") as tmp_dir_str:
+                        tmp_dir = Path(tmp_dir_str)
+                        for p in self.input_files:
+                            shutil.copy2(p, tmp_dir / p.name)
+
+                        out_file = results_dir / "pyopenms" / "pyopenms_features.csv"
+                        out_file.parent.mkdir(parents=True, exist_ok=True)
+
+                        params = extract_pyopenms_params(config)
+                        params.update(
+                            {
+                                k: v
+                                for k, v in self.algo_params.items()
+                                if k in {"mz_tol", "noise", "sn", "min_fwhm", "max_fwhm"}
+                            }
+                        )
+
+                        if self.pyopenms_python:
+                            from lipidbench.runners.run_pyopenms import run_pyopenms_subprocess
+
+                            run_pyopenms_subprocess(
+                                input_dir=tmp_dir,
+                                output_file=out_file,
+                                python_executable=self.pyopenms_python,
+                                **params,
+                            )
+                        else:
+                            run_pyopenms(input_dir=tmp_dir, output_file=out_file, **params)
+                        load_pyopenms_results(out_file, input_dir=tmp_dir, **params)
+                        return load_feature_table(out_file, algo)
 
                 raise ValueError(f"Unknown algorithm: {algo}")
 
         self._worker_thread = QtCore.QThread(self)
-        self._worker = Worker(algo, input_files, input_mode, mzml_dir, results_dir, msdial_xlsx, algo_params, asari_table_preference)
+        self._worker = Worker(algo, input_files, input_mode, mzml_dir, results_dir, msdial_xlsx, algo_params, asari_table_preference, pyopenms_python)
         self._worker.moveToThread(self._worker_thread)
         self._worker_thread.started.connect(self._worker.run)
         self._worker.finished.connect(self._on_worker_finished)
@@ -685,6 +768,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self._mzml_path = mzml_path
             self._load_mzml()
 
+        # 自动选中第一行并实时绘制，避免“有表无图”的感知问题。
+        if not self._feature_df_view.empty:
+            self.table.selectRow(0)
+            QtCore.QTimer.singleShot(0, self._try_plot_selected_row)
+
         self.status.showMessage("运行完成并加载", 5000)
 
         if self.auto_export_check.isChecked():
@@ -703,29 +791,87 @@ class MainWindow(QtWidgets.QMainWindow):
         if self._mzml_path is None:
             return
 
+        # GUI 预览固定使用 pymzml，彻底规避 pyopenms DLL 依赖问题。
         try:
-            import pyopenms as oms
+            import pymzml  # type: ignore
         except Exception as e:
-            self.status.showMessage(
-                f"GUI 进程内 pyopenms 不可用：{e}。",
-                10000,
+            QtWidgets.QMessageBox.warning(
+                self,
+                "EIC 预览不可用",
+                f"pymzml 不可用：\n{e}",
             )
             self._ms_exp = None
             self._mzml_ready = False
             return
 
         try:
-            exp = oms.MSExperiment()
-            oms.MzMLFile().load(str(self._mzml_path), exp)
+            reader = pymzml.run.Reader(str(self._mzml_path))
+            specs: list[_SimpleSpectrum] = []
+            for spec in reader:
+                ms_level = int(getattr(spec, "ms_level", 1) or 1)
+                if ms_level != 1:
+                    continue
+
+                try:
+                    rt_min = float(spec.scan_time_in_minutes())
+                except Exception:
+                    continue
+
+                try:
+                    peaks = spec.peaks("centroided")
+                except Exception:
+                    peaks = spec.peaks("raw")
+
+                if peaks is None or len(peaks) == 0:
+                    mz = np.asarray([], dtype=np.float64)
+                    intensity = np.asarray([], dtype=np.float64)
+                else:
+                    arr = np.asarray(peaks, dtype=np.float64)
+                    if arr.ndim != 2 or arr.shape[1] < 2:
+                        mz = np.asarray([], dtype=np.float64)
+                        intensity = np.asarray([], dtype=np.float64)
+                    else:
+                        mz = arr[:, 0]
+                        intensity = arr[:, 1]
+
+                specs.append(_SimpleSpectrum(rt_min=rt_min, mz=mz, intensity=intensity, ms_level=1))
+
+            if not specs:
+                raise RuntimeError("pymzml 未读取到 MS1 光谱")
+
+            self._ms_exp = specs
+            self._mzml_ready = True
+            self.status.showMessage("mzML 已就绪（pymzml）", 4000)
+            QtCore.QTimer.singleShot(0, self._try_plot_selected_row)
         except Exception as e:
-            self.status.showMessage(f"mzML 加载失败：{e}", 10000)
+            self.status.showMessage(f"mzML 加载失败（pymzml）：{e}", 10000)
+            QtWidgets.QMessageBox.warning(self, "EIC 预览不可用", f"mzML 加载失败（pymzml）：\n{e}")
             self._ms_exp = None
             self._mzml_ready = False
-            return
 
-        self._ms_exp = exp
-        self._mzml_ready = True
-        self.status.showMessage("mzML 已就绪", 3000)
+    def _try_plot_selected_row(self) -> None:
+        if self._feature_df_view.empty:
+            return
+        sm = self.table.selectionModel()
+        if sm is None:
+            return
+        indexes = sm.selectedRows()
+        if not indexes:
+            self.table.selectRow(0)
+            indexes = sm.selectedRows()
+            if not indexes:
+                return
+        self._request_plot_for_row(int(indexes[0].row()))
+
+    def _on_canvas_context_menu(self, pos: QtCore.QPoint) -> None:
+        if self.canvas is None:
+            return
+        menu = QtWidgets.QMenu(self)
+        act_export = menu.addAction("导出当前图像…")
+        act_export.setEnabled(self.fig is not None and self._last_feature_id is not None)
+        chosen = menu.exec(self.canvas.mapToGlobal(pos))
+        if chosen == act_export:
+            self._export_current_plot()
 
     def _export_current_plot(self) -> None:
         if self.fig is None or self.canvas is None:
@@ -744,6 +890,137 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.fig.savefig(out_path, dpi=150)
         self.status.showMessage(f"图像已导出：{out_path}", 6000)
+
+    def _resolve_mzml_for_attribute_export(self) -> Optional[Path]:
+        if self.input_mode_combo.currentData() == "single":
+            p = Path(self.mzml_path_edit.text().strip()) if self.mzml_path_edit.text().strip() else None
+            if p is not None and p.exists():
+                return p
+        else:
+            d = Path(self.mzml_dir_edit.text().strip()) if self.mzml_dir_edit.text().strip() else None
+            if d is not None and d.exists() and d.is_dir():
+                files = sorted(d.glob("*.mzML"))
+                if files:
+                    return files[0]
+
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "选择用于峰属性计算的 mzML", str(Path.cwd()), "mzML (*.mzML)")
+        if not path:
+            return None
+        return Path(path)
+
+    def _export_all_peak_attributes(self) -> None:
+        if self._feature_df_raw is None or self._feature_df_raw.empty:
+            self.status.showMessage("请先运行并加载当前算法特征表", 6000)
+            return
+
+        mzml_path = self._resolve_mzml_for_attribute_export()
+        if mzml_path is None or not mzml_path.exists():
+            self.status.showMessage("mzML 无效，无法计算峰属性", 6000)
+            return
+
+        algo = self.algo_combo.currentText().strip().lower()
+        df = standardize_rt_columns_for_display(self._feature_df_raw.copy(), algo)
+        if "RT" not in df.columns:
+            self.status.showMessage("当前特征表缺少 RT 列", 6000)
+            return
+
+        base_dir = Path(self.results_dir_edit.text().strip()) if self.results_dir_edit.text().strip() else Path.cwd()
+        out_default = base_dir / f"peak_attributes_all_{algo}.csv"
+        out_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "保存峰属性（全部特征）", str(out_default), "CSV (*.csv)")
+        if not out_path:
+            return
+
+        try:
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.CursorShape.WaitCursor)
+            # Fixed by design (reference SoftwareBenchmarking/PeakAttributeCalculator.r)
+            fixed_mz_tol_da = 0.01
+            fixed_rt_tol_sec = 30.0
+            out = compute_peak_attributes(
+                df[[c for c in ["Feature_ID", "mz", "RT"] if c in df.columns]],
+                mzml_path,
+                mz_tolerance=fixed_mz_tol_da,
+                tolerance_unit="Da",
+                method="nearest",
+                rt_tol_sec=fixed_rt_tol_sec,
+            )
+        except Exception as e:
+            QtWidgets.QApplication.restoreOverrideCursor()
+            QtWidgets.QMessageBox.critical(self, "导出失败", str(e))
+            self.status.showMessage(f"峰属性导出失败：{e}", 10000)
+            return
+        finally:
+            try:
+                QtWidgets.QApplication.restoreOverrideCursor()
+            except Exception:
+                pass
+
+        out.to_csv(out_path, index=False)
+        self.status.showMessage(f"峰属性已导出：{out_path}", 8000)
+
+    def _export_missing_peak_attributes(self) -> None:
+        paths, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self,
+            "选择多个算法特征峰表",
+            str(Path.cwd()),
+            "Table (*.csv *.xlsx *.xls)",
+        )
+        if not paths or len(paths) < 2:
+            self.status.showMessage("至少需要选择两个算法特征表", 6000)
+            return
+
+        mzml_path = self._resolve_mzml_for_attribute_export()
+        if mzml_path is None or not mzml_path.exists():
+            self.status.showMessage("mzML 无效，无法计算峰属性", 6000)
+            return
+
+        out_dir = QtWidgets.QFileDialog.getExistingDirectory(self, "选择导出目录", str(Path.cwd()))
+        if not out_dir:
+            return
+        out_dir_p = Path(out_dir)
+        out_dir_p.mkdir(parents=True, exist_ok=True)
+
+        try:
+            # Fixed by design (reference SoftwareBenchmarking scripts)
+            fixed_align_mz_tol_da = 0.01
+            fixed_align_rt_tol_sec = 10.0
+            fixed_attr_mz_tol_da = 0.01
+            fixed_attr_rt_tol_sec = 30.0
+
+            table_map: dict[str, pd.DataFrame] = {}
+            for p_str in paths:
+                p = Path(p_str)
+                algo = p.parent.name.lower()
+                if algo in table_map:
+                    algo = p.stem
+                table_map[algo] = load_and_standardize_table(p, algo=algo)
+
+            aligned = align_feature_tables(
+                table_map,
+                mz_tol_da=fixed_align_mz_tol_da,
+                rt_tol_sec=fixed_align_rt_tol_sec,
+            )
+            aligned_path = out_dir_p / "aligned_features.csv"
+            aligned.to_csv(aligned_path, index=False)
+
+            for algo in table_map.keys():
+                missing = missing_features_for_algo(aligned, algo, list(table_map.keys()))
+                if missing.empty:
+                    continue
+                attrs = compute_peak_attributes(
+                    missing[["Aligned_ID", "mz", "RT"]],
+                    mzml_path,
+                    mz_tolerance=fixed_attr_mz_tol_da,
+                    tolerance_unit="Da",
+                    method="nearest",
+                    rt_tol_sec=fixed_attr_rt_tol_sec,
+                )
+                attrs.to_csv(out_dir_p / f"missing_peak_attributes_{algo}.csv", index=False)
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "导出失败", str(e))
+            self.status.showMessage(f"多算法峰属性导出失败：{e}", 10000)
+            return
+
+        self.status.showMessage(f"多算法峰属性导出完成：{out_dir_p}", 10000)
 
     def _export_batch_eic(self, auto: bool = False) -> None:
         if (not self._mzml_ready) or self._mzml_path is None:
@@ -803,6 +1080,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     method = str(eic_cfg.get("method", "nearest")).strip().lower()
                     unit = str(eic_cfg.get("unit", "ppm")).strip()
                     sigma = float(eic_cfg.get("smooth_sigma", 0.0))
+                    # 固定图像参数（模型输入一致性）：不对用户暴露可配置项
+                    window_min = 2.0
+                    image_width_px = 400
+                    image_height_px = 300
+                    image_dpi = 100
 
                     df_info = self.df.copy()
                     if "RT" not in df_info.columns:
@@ -816,6 +1098,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         tolerance=float(self.ppm),
                         images_path=str(self.out_dir),
                         smooth_sigma=sigma,
+                        window_min=window_min,
+                        image_width_px=image_width_px,
+                        image_height_px=image_height_px,
+                        image_dpi=image_dpi,
                     )
 
                     _ = build_eic(paths=[self.mzml_path], info=df_info, plot=True, args=eic_args)
@@ -855,20 +1141,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status.showMessage(f"批量导出失败：{msg}", 10000)
 
     def _on_row_selected(self, selected: QtCore.QItemSelection, deselected: QtCore.QItemSelection) -> None:
-        if (not self._mzml_ready) or self._mzml_path is None or self._ms_exp is None or self.canvas is None or self.ax is None:
-            return
-        if self._feature_df_view.empty:
-            return
-
         indexes = self.table.selectionModel().selectedRows()
         if not indexes:
             return
-        row = int(indexes[0].row())
+        self._request_plot_for_row(int(indexes[0].row()))
+
+    def _request_plot_for_row(self, row: int) -> None:
+        if (not self._mzml_ready) or self._mzml_path is None or self._ms_exp is None or self.canvas is None or self.ax is None:
+            if self._feature_df_view is not None and not self._feature_df_view.empty:
+                self.status.showMessage("EIC 预览待就绪：请确认 mzML 已加载完成", 3000)
+            return
+        if self._feature_df_view.empty:
+            return
+        if row < 0 or row >= len(self._feature_df_view):
+            return
+
         rec = self._feature_df_view.iloc[row]
 
         mz = float(rec["mz"]) if pd.notna(rec["mz"]) else None
+        rt_val = rec.get("RT", pd.NA)
         rtmin_val = rec.get("RTmin", pd.NA)
         rtmax_val = rec.get("RTmax", pd.NA)
+        rt_center = float(rt_val) if pd.notna(rt_val) else None
         rtmin = float(rtmin_val) if pd.notna(rtmin_val) else None
         rtmax = float(rtmax_val) if pd.notna(rtmax_val) else None
         feature_id = str(rec["Feature_ID"]) if pd.notna(rec["Feature_ID"]) else f"row{row}"
@@ -876,10 +1170,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if mz is None:
             return
 
+        if rt_center is None and rtmin is not None and rtmax is not None:
+            rt_center = (rtmin + rtmax) / 2.0
+        if rt_center is None:
+            self.status.showMessage("该特征缺少 RT，无法按固定窗口绘图", 5000)
+            return
+
         ppm = float(self.ppm_spin.value())
-        pad = 0.2
-        rt_min_limit = (rtmin - pad) if rtmin is not None else None
-        rt_max_limit = (rtmax + pad) if rtmax is not None else None
+        half_window = 1.0  # fixed 2-min window for stable preview / downstream modeling
+        rt_min_limit = rt_center - half_window
+        rt_max_limit = rt_center + half_window
 
         payload = (float(mz), ppm, rt_min_limit, rt_max_limit, feature_id)
         if self._trace_busy:
@@ -900,7 +1200,7 @@ class MainWindow(QtWidgets.QMainWindow):
         job_id = self._trace_job_id
 
         class TraceWorker(QtCore.QObject):
-            finished = QtCore.Signal(int, object, object, str)
+            finished = QtCore.Signal(int, object, object, str, object, object)
             failed = QtCore.Signal(int, str)
 
             def __init__(self, exp: object, mz: float, ppm: float, rt_min_limit: Optional[float], rt_max_limit: Optional[float], feature_id: str, job_id: int):
@@ -931,7 +1231,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 except Exception as e:
                     self.failed.emit(self.job_id, str(e))
                     return
-                self.finished.emit(self.job_id, trace.rt_min, trace.intensity, self.feature_id)
+                self.finished.emit(
+                    self.job_id,
+                    trace.rt_min,
+                    trace.intensity,
+                    self.feature_id,
+                    self.rt_min_limit,
+                    self.rt_max_limit,
+                )
 
         self._trace_thread = QtCore.QThread(self)
         self._trace_worker = TraceWorker(
@@ -953,7 +1260,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._trace_thread.finished.connect(self._trace_thread.deleteLater)
         self._trace_thread.start()
 
-    def _on_trace_ready(self, job_id: int, rt_values: object, int_values: object, feature_id: str) -> None:
+    def _on_trace_ready(
+        self,
+        job_id: int,
+        rt_values: object,
+        int_values: object,
+        feature_id: str,
+        rt_min_limit: object,
+        rt_max_limit: object,
+    ) -> None:
         self._trace_busy = False
         if job_id != self._trace_job_id:
             if self._trace_pending is not None:
@@ -970,6 +1285,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.ax.clear()
         self.ax.plot(rt_values, int_values, linewidth=1.0)
+        if rt_min_limit is not None and rt_max_limit is not None:
+            self.ax.set_xlim(float(rt_min_limit), float(rt_max_limit))
         self.ax.set_xlabel("RT (min)")
         self.ax.set_ylabel("Intensity")
         self.ax.set_title(feature_id)

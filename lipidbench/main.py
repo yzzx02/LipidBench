@@ -62,6 +62,11 @@ def main():
     eic_max_features = int(args.eic_max_features if args.eic_max_features is not None else eic_cfg.get("max_features", 200))
     eic_processes = int(args.eic_processes if args.eic_processes is not None else config.get("common_params", {}).get("n_workers", 1))
     eic_smooth_sigma = float(args.eic_smooth_sigma if args.eic_smooth_sigma is not None else eic_cfg.get("smooth_sigma", 0.0))
+    # 固定图像参数（深度学习输入一致性）
+    eic_window_min = 2.0
+    eic_image_width_px = 400
+    eic_image_height_px = 300
+    eic_image_dpi = 100
 
     algo_list = [a.strip().lower() for a in args.algo.split(",") if a.strip()]
     for algo in algo_list:
@@ -97,6 +102,10 @@ def main():
                     tolerance=eic_ppm,
                     images_path=str(out_dir),
                     smooth_sigma=eic_smooth_sigma,
+                    window_min=eic_window_min,
+                    image_width_px=eic_image_width_px,
+                    image_height_px=eic_image_height_px,
+                    image_dpi=eic_image_dpi,
                 )
                 _ = build_eic([eic_mzml], df_info, True, eic_args)
                 print(f"[EIC export] {algo}: {len(df_info)} images -> {out_dir}/<mzML_name>")

@@ -87,11 +87,45 @@ def find_feature_table(results_dir: Path, algorithm: str) -> Path:
 def standardize_rt_columns_for_display(df: pd.DataFrame, algorithm: str) -> pd.DataFrame:
     out = df.copy()
     if algorithm.strip().lower() == "asari":
-        if "rtime" in out.columns and "RT" not in out.columns:
-            out["RT"] = out["rtime"]
+        aliases = {
+            "rtime": "RT",
+            "rt": "RT",
+            "rtime_apex": "RT",
+            "rt_apex": "RT",
+            "rtime_left_base": "RTmin",
+            "rt_left_base": "RTmin",
+            "rtime_right_base": "RTmax",
+            "rt_right_base": "RTmax",
+        }
+        for src, dst in aliases.items():
+            if src in out.columns and dst not in out.columns:
+                out[dst] = out[src]
+
         for col in ["RT", "RTmin", "RTmax"]:
             if col in out.columns:
-                out[col] = (pd.to_numeric(out[col], errors="coerce") / 60.0).round(3)
+                s = pd.to_numeric(out[col], errors="coerce")
+                vmax = s.max(skipna=True)
+                if pd.notna(vmax) and float(vmax) > 200:
+                    s = s / 60.0
+                out[col] = s.round(3)
+
+        out = out.drop(
+            columns=[
+                c
+                for c in [
+                    "rtime",
+                    "rt",
+                    "rtime_apex",
+                    "rt_apex",
+                    "rtime_left_base",
+                    "rt_left_base",
+                    "rtime_right_base",
+                    "rt_right_base",
+                ]
+                if c in out.columns and c not in {"RT", "RTmin", "RTmax"}
+            ],
+            errors="ignore",
+        )
 
     for col in ["mz", "RT", "RTmin", "RTmax"]:
         if col in out.columns:

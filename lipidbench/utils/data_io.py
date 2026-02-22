@@ -20,10 +20,45 @@ def load_asari_results(project_dir, output_dir=None, cleanup_project=True):
             df = df.rename(columns={"id_number": "Feature_ID"})
         if "[peak]id_number" in df.columns:
             df = df.rename(columns={"[peak]id_number": "Feature_ID"})
-        if "rtime_left_base" in df.columns:
-            df = df.rename(columns={"rtime_left_base": "RTmin"})
-        if "rtime_right_base" in df.columns:
-            df = df.rename(columns={"rtime_right_base": "RTmax"})
+
+        # Asari RT aliases -> standard names.
+        rt_aliases = {
+            "rtime": "RT",
+            "rt": "RT",
+            "rtime_apex": "RT",
+            "rt_apex": "RT",
+            "rtime_left_base": "RTmin",
+            "rt_left_base": "RTmin",
+            "rtime_right_base": "RTmax",
+            "rt_right_base": "RTmax",
+        }
+        for src, dst in rt_aliases.items():
+            if src in df.columns and dst not in df.columns:
+                df = df.rename(columns={src: dst})
+
+        # If both old/new names coexist, drop old aliases to avoid GUI confusion.
+        drop_aliases = [
+            "rtime",
+            "rt",
+            "rtime_apex",
+            "rt_apex",
+            "rtime_left_base",
+            "rt_left_base",
+            "rtime_right_base",
+            "rt_right_base",
+        ]
+        for c in drop_aliases:
+            if c in df.columns and c not in {"RT", "RTmin", "RTmax"}:
+                df = df.drop(columns=[c])
+
+        # Normalize RT unit to minutes (Asari raw output is commonly seconds).
+        for c in ["RT", "RTmin", "RTmax"]:
+            if c in df.columns:
+                s = pd.to_numeric(df[c], errors="coerce")
+                vmax = s.max(skipna=True)
+                if pd.notna(vmax) and float(vmax) > 200:
+                    s = s / 60.0
+                df[c] = s.round(3)
 
         if "Feature_ID" not in df.columns:
             raise ValueError("Asari table missing Feature_ID (id_number)")

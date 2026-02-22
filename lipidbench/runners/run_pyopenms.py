@@ -1,11 +1,59 @@
 import os
 import sys
+import subprocess
+import argparse
 from pathlib import Path
+import site
 
-from typing import Any
+from typing import Any, Optional
 
 from lipidbench.utils.config_io import get_base_dir, _resolve_path
 from lipidbench.utils.data_io import load_pyopenms_results
+
+
+def _add_windows_dll_dirs() -> None:
+    if os.name != "nt" or not hasattr(os, "add_dll_directory"):
+        return
+
+    candidates = []
+    try:
+        for sp in site.getsitepackages():
+            p = Path(sp)
+            candidates.append(p / "pyopenms")
+            candidates.append(p / "pyopenms.libs")
+    except Exception:
+        pass
+
+    try:
+        import sysconfig
+
+        platlib = sysconfig.get_paths().get("platlib")
+        if platlib:
+            p = Path(platlib)
+            candidates.append(p / "pyopenms")
+            candidates.append(p / "pyopenms.libs")
+    except Exception:
+        pass
+
+    # 去重并添加目录
+    seen = set()
+    for d in candidates:
+        key = str(d).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        if d.exists() and d.is_dir():
+            try:
+                os.add_dll_directory(str(d))
+            except Exception:
+                pass
+
+    # 兼容旧机制：把目录并入 PATH
+    valid_dirs = [str(d) for d in candidates if d.exists() and d.is_dir()]
+    if valid_dirs:
+        old_path = os.environ.get("PATH", "")
+        merged = os.pathsep.join(valid_dirs + ([old_path] if old_path else []))
+        os.environ["PATH"] = merged
 
 
 def _get_oms():
@@ -14,12 +62,22 @@ def _get_oms():
 
         return oms
     except Exception as e:
+        first_error = e
+
+    # Windows 常见场景：DLL 搜索路径未包含 pyopenms 目录，补救后重试。
+    _add_windows_dll_dirs()
+    try:
+        import pyopenms as oms  # type: ignore
+
+        return oms
+    except Exception as e2:
         raise ImportError(
-            "pyopenms 导入失败（常见原因：Python 版本不匹配 / 缺少 VC++ 运行库 / 环境损坏）。\n"
+            "pyopenms 导入失败（常见原因：Python 版本不匹配 / 缺少 VC++ 运行库 / 环境损坏 / DLL 路径未配置）。\n"
             "建议：切换到已安装 pyopenms 的解释器，并检查 VC++ 运行库。\n"
             f"当前 Python: {sys.version.split()[0]}\n"
             f"当前解释器: {sys.executable}\n"
-            f"原始错误: {e}"
+            f"首次错误: {first_error}\n"
+            f"重试错误: {e2}"
         )
 
 
@@ -111,6 +169,56 @@ def run_pyopenms(input_dir, output_file, mz_tol, min_fwhm, max_fwhm, noise=1000,
     return output_file
 
 
+def run_pyopenms_subprocess(
+    input_dir,
+    output_file,
+    mz_tol,
+    min_fwhm,
+    max_fwhm,
+    noise=1000,
+    sn=5,
+    python_executable: Optional[str] = None,
+):
+    py_exec = str(python_executable).strip() if python_executable else sys.executable
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parents[2]
+
+    cmd = [
+        py_exec,
+        str(script_path),
+        "--input-dir",
+        str(Path(input_dir).resolve()),
+        "--output-file",
+        str(Path(output_file).resolve()),
+        "--mz-tol",
+        str(float(mz_tol)),
+        "--min-fwhm",
+        str(float(min_fwhm)),
+        "--max-fwhm",
+        str(float(max_fwhm)),
+        "--noise",
+        str(float(noise)),
+        "--sn",
+        str(float(sn)),
+    ]
+
+    env = os.environ.copy()
+    old_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = str(project_root) + (os.pathsep + old_pythonpath if old_pythonpath else "")
+
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            "外部解释器执行 pyopenms 失败。\n"
+            f"解释器: {py_exec}\n"
+            f"命令: {' '.join(cmd)}\n"
+            f"stdout:\n{proc.stdout}\n"
+            f"stderr:\n{proc.stderr}"
+        )
+
+    return output_file
+
+
 def extract_pyopenms_params(config):
     pyopenms_params = config.get("parameters", {}).get("pyopenms", {})
     peak_picking = pyopenms_params.get("peak_picking", {}) if isinstance(pyopenms_params, dict) else {}
@@ -144,3 +252,28 @@ def run_pyopenms_pipeline(config):
     if not output_file.exists():
         raise FileNotFoundError(f"pyOpenMS output file not found: {output_file}")
     load_pyopenms_results(output_file.resolve(), input_dir=input_dir, **params)
+
+
+def _parse_cli_args():
+    parser = argparse.ArgumentParser(description="Run pyOpenMS feature extraction")
+    parser.add_argument("--input-dir", type=Path, required=True)
+    parser.add_argument("--output-file", type=Path, required=True)
+    parser.add_argument("--mz-tol", type=float, required=True)
+    parser.add_argument("--min-fwhm", type=float, required=True)
+    parser.add_argument("--max-fwhm", type=float, required=True)
+    parser.add_argument("--noise", type=float, default=1000.0)
+    parser.add_argument("--sn", type=float, default=5.0)
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    ns = _parse_cli_args()
+    run_pyopenms(
+        input_dir=ns.input_dir,
+        output_file=ns.output_file,
+        mz_tol=ns.mz_tol,
+        min_fwhm=ns.min_fwhm,
+        max_fwhm=ns.max_fwhm,
+        noise=ns.noise,
+        sn=ns.sn,
+    )
