@@ -1089,7 +1089,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     df_info = self.df.copy()
                     if "RT" not in df_info.columns:
                         raise ValueError("批量导出需要 RT 列")
-                    df_info = df_info[["Feature_ID", "mz", "RT"]].dropna(subset=["mz", "RT"]).head(self.max_features)
+                    keep_cols = [c for c in ["Feature_ID", "mz", "RT", "RTmin", "RTmax"] if c in df_info.columns]
+                    df_info = df_info[keep_cols].dropna(subset=["mz", "RT"]).head(self.max_features)
 
                     eic_args = SimpleNamespace(
                         processes_number=1,

@@ -180,7 +180,7 @@ def extract_eic(
     return matrix
 
 
-def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: float = 2.0, image_width_px: int = 400, image_height_px: int = 300, image_dpi: int = 100):
+def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: float = 2.0, image_width_px: int = 400, image_height_px: int = 300, image_dpi: int = 150):
     eic = eic_list[index]
     rt = eic[0]
     feature_counts = len(eic) - 1
@@ -202,6 +202,12 @@ def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: f
         intensity = eic[k + 1]
         feature_id = str(df_info.iloc[k]["Feature_ID"])
         feature_rt = float(pd.to_numeric(df_info.iloc[k]["RT"], errors="coerce"))
+        rtmin_raw = pd.to_numeric(df_info.iloc[k].get("RTmin", np.nan), errors="coerce")
+        rtmax_raw = pd.to_numeric(df_info.iloc[k].get("RTmax", np.nan), errors="coerce")
+        if pd.isna(rtmin_raw) or pd.isna(rtmax_raw):
+            # fallback when bounds are unavailable
+            rtmin_raw = feature_rt - 0.1
+            rtmax_raw = feature_rt + 0.1
         calc_intensity, cal_rt = calc_coordinate(records, intensity, rt, k, windows_size=float(window_min))
         smooth_intensity, smooth_rt = gussian_smooth(calc_intensity, cal_rt, sigma)
         half = float(window_min) / 2.0
@@ -216,6 +222,8 @@ def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: f
             height_px=int(image_height_px),
             dpi=int(image_dpi),
             normalize_y=False,
+            rtmin=float(rtmin_raw),
+            rtmax=float(rtmax_raw),
         )
 
 
@@ -293,7 +301,7 @@ def build(paths, info, plot, args):
         window_min = 2.0
         image_width_px = 400
         image_height_px = 300
-        image_dpi = 100
+        image_dpi = 150
 
         if "RT" not in df_info.columns:
             raise ValueError("plot=True 时 info 必须包含 'RT' 列")

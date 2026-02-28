@@ -89,7 +89,8 @@ def main():
                 if "RT" not in df.columns:
                     print(f"[EIC export] {algo}: skipped (feature table has no RT column)")
                     continue
-                df_info = df[["Feature_ID", "mz", "RT"]].dropna(subset=["mz", "RT"]).head(eic_max_features)
+                keep_cols = [c for c in ["Feature_ID", "mz", "RT", "RTmin", "RTmax"] if c in df.columns]
+                df_info = df[keep_cols].dropna(subset=["mz", "RT"]).head(eic_max_features)
                 if df_info.empty:
                     print(f"[EIC export] {algo}: skipped (no valid Feature_ID/mz/RT rows)")
                     continue

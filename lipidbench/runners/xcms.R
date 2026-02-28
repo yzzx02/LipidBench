@@ -28,7 +28,7 @@ params <- CentWaveParam(
     noise = opt$noise,
     snthresh = opt$sn,
     mzdiff = opt$mzdiff,
-    prefilter = c(opt$prefilter, 3000),
+    prefilter = c(opt$prefilter, 1000),
     mzCenterFun = "wMean",
     integrate = 1,
     fitgauss = FALSE

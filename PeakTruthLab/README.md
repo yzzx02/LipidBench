@@ -30,3 +30,16 @@
 - F1 / Recall@Precision>=0.95
 - 跨仪器与跨算法泛化（asari/pyopenms/xcms）
 
+## 目录约定（与 LipidBench 解耦）
+- `datasets/`：训练数据（EIC 图 + LabelMe JSON）
+- `scripts/`：数据构建脚本
+- `models/`：模型定义
+- `train/`：训练与评估脚本
+- `configs/`：实验配置
+
+## 当前已生成数据
+- 原始 mzML：`data/DIA_mzML/HILIC-Pos-SWATH-25Da-20140701_08_GB004467_Swath25Da.mzML`
+- 特征表：`Results/pyopenms/xcms/xcms_features.csv`
+- 输出目录：`PeakTruthLab/datasets/eic_images/HILIC-Pos-SWATH-25Da-20140701_08_GB004467_Swath25Da`
+- 数量：`299` 张 JPEG + `299` 个同名 LabelMe JSON
+
