@@ -43,3 +43,9 @@
 - 输出目录：`PeakTruthLab/datasets/eic_images/HILIC-Pos-SWATH-25Da-20140701_08_GB004467_Swath25Da`
 - 数量：`299` 张 JPEG + `299` 个同名 LabelMe JSON
 
+## 新增训练框架（ConvNeXt-Tiny + 峰属性融合）
+- 训练脚本：`scripts/train_convnext_fusion.py`
+- 执行计划：`docs/CONVNEXT_FUSION_EXECUTION_PLAN.md`
+- 支持模式：二分类主线 + 多类别扩展（无需回退到 Faster R-CNN）。
+- 适用场景：约 1w 张数据的真假峰二分类 + 传统算法候选峰质量比较。
+
