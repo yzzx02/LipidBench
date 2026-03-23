@@ -42,6 +42,8 @@ class PeakFusionDataset(Dataset):
         label_col: str,
         transform: transforms.Compose | None = None,
         class_to_id: dict[str, int] | None = None,
+        attr_mean: torch.Tensor | None = None,
+        attr_std: torch.Tensor | None = None,
     ) -> None:
         self.df = pd.read_csv(csv_path)
         self.image_root = image_root
@@ -50,6 +52,8 @@ class PeakFusionDataset(Dataset):
         self.label_col = label_col
         self.transform = transform
         self.class_to_id = class_to_id
+        self.attr_mean = attr_mean
+        self.attr_std = attr_std
 
         required = [image_col, label_col, *self.attr_columns]
         missing = [c for c in required if c not in self.df.columns]
@@ -73,6 +77,8 @@ class PeakFusionDataset(Dataset):
                 label_id = int(self.class_to_id[label_key])
 
             attrs = torch.tensor([float(row[c]) for c in self.attr_columns], dtype=torch.float32)
+            if self.attr_mean is not None and self.attr_std is not None:
+                attrs = (attrs - self.attr_mean) / self.attr_std
             self.samples.append(SampleSpec(image_path=img_path, label=label_id, attrs=attrs))
 
         if not self.samples:
@@ -258,6 +264,17 @@ def train(args: argparse.Namespace) -> None:
 
     attr_columns = [c.strip() for c in args.attr_columns.split(",") if c.strip()]
 
+    train_df_for_stats = pd.read_csv(Path(args.train_csv))
+    missing_attr = [c for c in attr_columns if c not in train_df_for_stats.columns]
+    if missing_attr:
+        raise ValueError(f"Missing attr columns in train CSV: {missing_attr}")
+
+    attr_mean = torch.tensor(train_df_for_stats[attr_columns].astype(float).mean(axis=0).values, dtype=torch.float32)
+    attr_std = torch.tensor(train_df_for_stats[attr_columns].astype(float).std(axis=0).values, dtype=torch.float32)
+    attr_std = torch.where(attr_std < 1e-8, torch.ones_like(attr_std), attr_std)
+
+    print("Attribute normalization enabled (z-score from train split).")
+
     if args.task_type == "binary":
         label_col = args.label_col
         class_to_id = None
@@ -278,6 +295,8 @@ def train(args: argparse.Namespace) -> None:
         label_col=label_col,
         transform=build_train_transform(enable_blur=args.enable_gaussian_blur),
         class_to_id=class_to_id,
+        attr_mean=attr_mean,
+        attr_std=attr_std,
     )
     val_ds = PeakFusionDataset(
         csv_path=Path(args.val_csv),
@@ -287,6 +306,8 @@ def train(args: argparse.Namespace) -> None:
         label_col=label_col,
         transform=build_eval_transform(),
         class_to_id=class_to_id,
+        attr_mean=attr_mean,
+        attr_std=attr_std,
     )
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -348,6 +369,8 @@ def train(args: argparse.Namespace) -> None:
                     "model_state": model.state_dict(),
                     "args": vars(args),
                     "attr_columns": attr_columns,
+                    "attr_mean": attr_mean.tolist(),
+                    "attr_std": attr_std.tolist(),
                     "class_to_id": class_to_id,
                     "epoch": epoch,
                     "best_metric_name": best_metric_name,
