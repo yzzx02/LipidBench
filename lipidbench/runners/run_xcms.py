@@ -20,6 +20,7 @@ def extract_xcms_params(config):
     sn = peak_picking.get("snthresh", 3)
     prefilter = peak_picking.get("prefilter_val", 3)
     mzdiff = peak_picking.get("mzdiff", 0.001)
+    min_maxo = peak_picking.get("min_maxo", None)
 
     return {
         "polarity": polarity,
@@ -30,10 +31,11 @@ def extract_xcms_params(config):
         "mzdiff": mzdiff,
         "sn": sn,
         "prefilter": prefilter,
+        "min_maxo": min_maxo,
     }
 
 
-def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise=1000, sn=3, prefilter=3, mzdiff=0.001):
+def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise=1000, sn=3, prefilter=3, mzdiff=0.001, min_maxo=None):
     r_script_path = os.path.join(os.path.dirname(__file__), "xcms.R")
     cmd = [
         "Rscript", str(r_script_path),
@@ -48,6 +50,8 @@ def run_xcms(input_dir, output_file, polarity, mz_tol, minwidth, maxwidth, noise
         "--prefilter", str(prefilter),
         "--mzdiff", str(mzdiff),
     ]
+    if min_maxo is not None:
+        cmd.extend(["--min_maxo", str(min_maxo)])
     print(f"Executing XCMS: {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
 

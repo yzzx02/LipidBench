@@ -1,0 +1,21 @@
+# Core scientific stack
+numpy==2.4.3
+pandas==3.0.1
+scipy==1.17.1
+matplotlib==3.10.8
+scikit-learn==1.8.0
+
+# Imaging and GUI
+pillow==12.1.1
+PySide6==6.10.2
+
+# Mass spectrometry / domain
+pymzml==2.6.0
+pyopenms==3.5.0
+
+# Deep learning
+torch==2.10.0
+torchvision==0.25.0
+
+# Config
+PyYAML==6.0.3

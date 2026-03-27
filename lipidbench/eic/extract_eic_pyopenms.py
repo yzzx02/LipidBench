@@ -104,9 +104,9 @@ def extract_eic(
     """
 
     try:
-        import pymzml  # type: ignore
+        import pyopenms
     except ImportError as e:
-        raise RuntimeError(f"pymzml is required for EIC extraction: {e}")
+        raise RuntimeError(f"pyopenms is required for EIC extraction: {e}")
 
     if not (hasattr(df_info, "columns") and "Feature_ID" in df_info.columns and "mz" in df_info.columns):
         raise ValueError("df_info 必须是包含 'Feature_ID' 和 'mz' 列的 DataFrame")
@@ -123,33 +123,33 @@ def extract_eic(
     rt_vals: list[float] = []
     traces: list[list[float]] = [[] for _ in range(len(mz_targets))]
 
-    reader = pymzml.run.Reader(str(path))
-    for spec in reader:
-        ms_level = int(getattr(spec, "ms_level", 1) or 1)
+    exp = pyopenms.MSExperiment()
+    pyopenms.MzMLFile().load(str(path), exp)
+    picker = pyopenms.PeakPickerHiRes()
+
+    for spec in exp:
+        ms_level = spec.getMSLevel()
         if ms_level != 1:
             continue
 
         try:
-            rt_min = float(spec.scan_time_in_minutes())
+            rt_min = float(spec.getRT()) / 60.0
         except Exception:
             continue
 
-        try:
-            peaks = spec.peaks("centroided")
-        except Exception:
-            peaks = spec.peaks("raw")
+        if spec.getType() == pyopenms.SpectrumSettings.SpectrumType.PROFILE:
+            picked_spec = pyopenms.MSSpectrum()
+            picker.pick(spec, picked_spec)
+            mzs, peaks = picked_spec.get_peaks()
+        else:
+            mzs, peaks = spec.get_peaks()
 
-        if peaks is None or len(peaks) == 0:
+        if mzs is None or len(mzs) == 0:
             mzs_arr = np.asarray([], dtype=np.float64)
             ints_arr = np.asarray([], dtype=np.float64)
         else:
-            arr = np.asarray(peaks, dtype=np.float64)
-            if arr.ndim != 2 or arr.shape[1] < 2:
-                mzs_arr = np.asarray([], dtype=np.float64)
-                ints_arr = np.asarray([], dtype=np.float64)
-            else:
-                mzs_arr = arr[:, 0]
-                ints_arr = arr[:, 1]
+            mzs_arr = np.asarray(mzs, dtype=np.float64)
+            ints_arr = np.asarray(peaks, dtype=np.float64)
 
         rt_vals.append(rt_min)
         if mzs_arr.size == 0:
@@ -180,7 +180,7 @@ def extract_eic(
     return matrix
 
 
-def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: float = 2.0, image_width_px: int = 400, image_height_px: int = 300, image_dpi: int = 150):
+def draw_eic(index, paths, eic_list, df_info, image_path, sigma=0, window_min: float = 2.0, image_width_px: int = 480, image_height_px: int = 480, image_dpi: int = 150):
     eic = eic_list[index]
     rt = eic[0]
     feature_counts = len(eic) - 1
@@ -299,8 +299,8 @@ def build(paths, info, plot, args):
         sigma = float(getattr(args, "smooth_sigma", 0))
         # 固定图像参数（深度学习输入一致性）
         window_min = 2.0
-        image_width_px = 400
-        image_height_px = 300
+        image_width_px = 480
+        image_height_px = 480
         image_dpi = 150
 
         if "RT" not in df_info.columns:

@@ -14,7 +14,8 @@ option_list <- list(
   make_option(c("--sn"), type = "numeric", default = 10),
   make_option(c("--prefilter"), type = "numeric", default = 3),
   make_option(c("--frac"), type = "numeric", default = 0.5),
-  make_option(c("--mzdiff"), type = "numeric", default = 0.001)
+    make_option(c("--mzdiff"), type = "numeric", default = 0.001),
+    make_option(c("--min_maxo"), type = "numeric", default = NA)
 )
 register(SerialParam(progressbar = TRUE))
 opt <- parse_args(OptionParser(option_list = option_list))
@@ -28,7 +29,7 @@ params <- CentWaveParam(
     noise = opt$noise,
     snthresh = opt$sn,
     mzdiff = opt$mzdiff,
-    prefilter = c(opt$prefilter, 1000),
+    prefilter = c(opt$prefilter, 10000),
     mzCenterFun = "wMean",
     integrate = 1,
     fitgauss = FALSE
@@ -45,8 +46,28 @@ if (length(files) > 1) {
 }
 
 peakInfo <- featureDefinitions(xdata)
+pks <- chromPeaks(xdata)
+
+peak_maxo <- sapply(peakInfo$peakidx, function(idx) {
+    if (length(idx) == 0) return(NA_real_)
+    vals <- pks[idx, "maxo"]
+    vals <- vals[is.finite(vals)]
+    if (length(vals) == 0) return(NA_real_)
+    max(vals)
+})
+
+peak_into <- sapply(peakInfo$peakidx, function(idx) {
+    if (length(idx) == 0) return(NA_real_)
+    vals <- pks[idx, "into"]
+    vals <- vals[is.finite(vals)]
+    if (length(vals) == 0) return(NA_real_)
+    max(vals)
+})
+
+peakInfo$maxo <- peak_maxo
+peakInfo$into <- peak_into
+
 if (length(files) == 1) {
-    pks <- chromPeaks(xdata)
     peak_indices <- sapply(peakInfo$peakidx, function(x) x[1])
     peakInfo$mzmin <- pks[peak_indices, "mzmin"]
     peakInfo$mzmax <- pks[peak_indices, "mzmax"]
@@ -67,4 +88,9 @@ if (is_single_sample) {
 
 drop_cols <- c("peakidx")
 peaktable <- peaktable[, !(names(peaktable) %in% drop_cols)]
+
+if (!is.na(opt$min_maxo) && "maxo" %in% names(peaktable)) {
+    peaktable <- peaktable[!is.na(peaktable$maxo) & peaktable$maxo >= opt$min_maxo, , drop = FALSE]
+}
+
 write.table(peaktable, file = opt$output, sep=",", row.names= FALSE, col.names=TRUE, quote=FALSE)

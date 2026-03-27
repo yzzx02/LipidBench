@@ -1,11 +1,15 @@
 from bisect import bisect_left, bisect_right
 import json
 import numpy as np
-from scipy.ndimage import gaussian_filter
+import matplotlib
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator, FuncFormatter, ScalarFormatter, MaxNLocator
 from pathlib import Path
 from typing import Union, Optional
+
+
+_GAUSSIAN_FILTER = None
 
 
 def _tick_formatter(v, _pos):
@@ -46,8 +50,12 @@ def calc_coordinate(df_info,intensities,rt,k,windows_size=2):
 def gussian_smooth(intensity,rt,sigma):
     if sigma == 0:
         return intensity, rt
-    else:
-        return gaussian_filter(intensity, sigma=sigma), rt
+    global _GAUSSIAN_FILTER
+    if _GAUSSIAN_FILTER is None:
+        from scipy.ndimage import gaussian_filter as _gf
+
+        _GAUSSIAN_FILTER = _gf
+    return _GAUSSIAN_FILTER(intensity, sigma=sigma), rt
 
 
 def generate_labelme_json(json_path, image_name, rtmin, rtmax, rt_arr, eic_arr, ax, fig, use_tight: bool = False):
@@ -145,8 +153,8 @@ def plot_eic(
     folder_path: Union[str, Path],
     *,
     xlim: Optional[tuple[float, float]] = None,
-    width_px: int = 400,
-    height_px: int = 300,
+    width_px: int = 480,
+    height_px: int = 480,
     dpi: int = 150,
     normalize_y: bool = False,
     rtmin: Optional[float] = None,
@@ -167,7 +175,7 @@ def plot_eic(
         except Exception:
             y = intensity
 
-    ax.plot(rt, y, color="royalblue", linewidth=1.0)
+    ax.plot(rt, y, color="royalblue", linewidth=0.8)
     if xlim is not None:
         ax.set_xlim(float(xlim[0]), float(xlim[1]))
     if normalize_y:
@@ -196,9 +204,14 @@ def plot_eic(
     ax.tick_params(axis='both', labelsize=6)
     ax.yaxis.get_offset_text().set_size(6)
 
-    fig.tight_layout()
+    try:
+        fig.tight_layout()
+    except Exception:
+        # Some edge-case tick text can trigger mathtext parse failures on tight layout.
+        # Continue without tight layout so batch export does not abort.
+        pass
     fig.canvas.draw()
-    out_path = folder / f"{name}.jpeg"
+    out_path = folder / f"{name}.png"
     plt.savefig(str(out_path), dpi=int(dpi))
 
     if rtmin is not None and rtmax is not None:

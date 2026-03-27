@@ -97,6 +97,8 @@ def load_xcms_results(file_path):
     new_data = {}
     sample_cols = [col for col in data.columns if col.endswith(".mzML")]
     has_sn = "sn" in data.columns
+    has_maxo = "maxo" in data.columns
+    has_into = "into" in data.columns
 
     for col in sample_cols:
         data[col] = data[col].fillna(0)
@@ -110,6 +112,10 @@ def load_xcms_results(file_path):
         }
         if has_sn:
             entry["sn"] = row["sn"]
+        if has_maxo:
+            entry["maxo"] = row["maxo"]
+        if has_into:
+            entry["into"] = row["into"]
         for col in sample_cols:
             entry[col] = row[col]
         new_data[index] = entry
