@@ -21,6 +21,7 @@ from lipidbench.utils.peak_attributes import (
     _extract_trace,
     load_ms1_spectra,
 )
+from lipidbench.utils.rt_boundary_refiner import refine_peak_boundaries
 
 
 def _backup_final_csv_if_needed(target_csv: Path, backup_dir: Path) -> Path | None:
@@ -34,75 +35,6 @@ def _backup_final_csv_if_needed(target_csv: Path, backup_dir: Path) -> Path | No
     backup_path = backup_dir / f"{target_csv.stem}__backup_{ts}{target_csv.suffix}"
     shutil.copy2(target_csv, backup_path)
     return backup_path
-
-
-def _robust_baseline_sigma(x: np.ndarray) -> tuple[float, float]:
-    if x.size == 0:
-        return 0.0, 0.0
-    baseline = float(np.median(x))
-    mad = float(np.median(np.abs(x - baseline)))
-    sigma = 1.4826 * mad
-    return baseline, sigma
-
-
-def _estimate_bounds(
-    rt: np.ndarray,
-    eic: np.ndarray,
-    rt_hint: float,
-    *,
-    search_half_window_min: float,
-    local_half_window_min: float,
-    sigma_mult: float,
-    min_rel_height: float,
-    expand_scans: int,
-) -> tuple[float, float, float, float, int, int]:
-    if rt.size == 0 or eic.size == 0 or rt.size != eic.size:
-        return float(rt_hint), float(rt_hint), float(rt_hint), 0.0, -1, -1
-
-    y = np.asarray(eic, dtype=np.float64)
-    y = np.where(np.isfinite(y), y, 0.0)
-    y[y < 0] = 0.0
-
-    in_search = (rt >= (rt_hint - search_half_window_min)) & (rt <= (rt_hint + search_half_window_min))
-    if np.any(in_search):
-        cand_idx = np.where(in_search)[0]
-        apex_idx = int(cand_idx[np.argmax(y[cand_idx])])
-    else:
-        apex_idx = int(np.argmin(np.abs(rt - rt_hint)))
-
-    apex_rt = float(rt[apex_idx])
-    apex_int = float(y[apex_idx])
-
-    in_local = (rt >= (apex_rt - local_half_window_min)) & (rt <= (apex_rt + local_half_window_min))
-    local_y = y[in_local] if np.any(in_local) else y
-    baseline, sigma = _robust_baseline_sigma(local_y)
-
-    thr_noise = baseline + sigma_mult * sigma
-    thr_rel = apex_int * float(min_rel_height)
-    threshold = max(thr_noise, thr_rel)
-
-    if apex_int <= 0:
-        return apex_rt, apex_rt, apex_rt, 0.0, apex_idx, apex_idx
-
-    if threshold >= apex_int:
-        threshold = apex_int * 0.5
-
-    left = apex_idx
-    right = apex_idx
-
-    while left > 0 and y[left - 1] >= threshold:
-        left -= 1
-    while right < (len(y) - 1) and y[right + 1] >= threshold:
-        right += 1
-
-    if expand_scans > 0:
-        left = max(0, left - int(expand_scans))
-        right = min(len(y) - 1, right + int(expand_scans))
-
-    rtmin = float(rt[left])
-    rtmax = float(rt[right])
-    width_sec = float(max(rtmax - rtmin, 0.0) * 60.0)
-    return rtmin, rtmax, apex_rt, width_sec, left, right
 
 
 def _parse_source_filter(v: str) -> set[str]:
@@ -173,18 +105,35 @@ def recompute(args: argparse.Namespace) -> None:
                 method=str(args.method),
             )
 
-            new_rtmin, new_rtmax, apex_rt, width_sec, li, ri = _estimate_bounds(
+            refined = refine_peak_boundaries(
                 rt_arr,
                 eic_arr,
                 rt_hint,
+                rtmin_hint=(None if pd.isna(row["RTmin"]) else float(row["RTmin"])),
+                rtmax_hint=(None if pd.isna(row["RTmax"]) else float(row["RTmax"])),
                 search_half_window_min=float(args.search_half_window_min),
                 local_half_window_min=float(args.local_half_window_min),
                 sigma_mult=float(args.sigma_mult),
                 min_rel_height=float(args.min_rel_height),
-                expand_scans=int(args.expand_scans),
+                smooth_window_scans=int(args.smooth_window_scans),
+                smooth_passes=int(args.smooth_passes),
+                confirm_scans=int(args.boundary_confirm),
+                max_expand_scans=int(args.max_expand_scans),
+                max_expand_min=float(args.max_expand_min),
+                rise_rel_tol=float(args.rise_rel_tol),
+                rebound_rel=float(args.rebound_rel),
+                rise_patience=int(args.rise_patience),
+                oversize_factor=float(args.oversize_factor),
             )
-
-            center_rt = apex_rt if args.use_apex_as_rt else rt_hint
+            rt_outside_refined = not (float(refined.rtmin) <= float(rt_hint) <= float(refined.rtmax))
+            if args.update_rt_mode == "always":
+                center_rt = float(refined.apex_rt)
+            elif args.update_rt_mode == "when_outside_bounds" and (
+                (not bool(refined.old_rt_in_bounds)) or rt_outside_refined
+            ):
+                center_rt = float(refined.apex_rt)
+            else:
+                center_rt = float(rt_hint)
 
             attrs = _compute_one_feature_attributes(
                 rt_arr,
@@ -192,18 +141,22 @@ def recompute(args: argparse.Namespace) -> None:
                 mass_arr,
                 target_mz=mz,
                 target_rt_min=center_rt,
-                target_rtmin=new_rtmin,
-                target_rtmax=new_rtmax,
+                target_rtmin=float(refined.rtmin),
+                target_rtmax=float(refined.rtmax),
                 rt_tol_sec=float(args.rt_tol_sec),
                 include_literature_top=True,
             )
 
             upd = {
-                "RTmin": round(float(new_rtmin), 6),
-                "RTmax": round(float(new_rtmax), 6),
+                "RTmin": round(float(refined.rtmin), 6),
+                "RTmax": round(float(refined.rtmax), 6),
             }
-            if args.use_apex_as_rt:
-                upd["RT"] = round(float(apex_rt), 6)
+            if args.update_rt_mode == "always" or (
+                args.update_rt_mode == "when_outside_bounds" and (
+                    (not bool(refined.old_rt_in_bounds)) or rt_outside_refined
+                )
+            ):
+                upd["RT"] = round(float(refined.apex_rt), 6)
             for c in LITERATURE_TOP_COLUMNS:
                 upd[c] = attrs.get(c, np.nan)
             updates[int(idx)] = upd
@@ -217,12 +170,30 @@ def recompute(args: argparse.Namespace) -> None:
                     "old_RT": float(row["RT"]),
                     "new_RT": float(upd.get("RT", row["RT"])),
                     "old_RTmin": old_rtmin,
-                    "new_RTmin": float(new_rtmin),
+                    "new_RTmin": float(refined.rtmin),
                     "old_RTmax": old_rtmax,
-                    "new_RTmax": float(new_rtmax),
-                    "new_width_sec": width_sec,
-                    "left_idx": int(li),
-                    "right_idx": int(ri),
+                    "new_RTmax": float(refined.rtmax),
+                    "new_width_sec": float(refined.width_sec),
+                    "apex_RT": float(refined.apex_rt),
+                    "apex_idx": int(refined.apex_idx),
+                    "left_idx": int(refined.left_idx),
+                    "right_idx": int(refined.right_idx),
+                    "status": str(refined.status),
+                    "bound_mode": str(refined.bound_mode),
+                    "old_rt_in_bounds": bool(refined.old_rt_in_bounds),
+                    "old_rt_outside_refined": bool(rt_outside_refined),
+                    "rt_recentred": bool(refined.rt_recentred),
+                    "baseline": float(refined.baseline),
+                    "noise_sigma": float(refined.noise_sigma),
+                    "threshold": float(refined.threshold),
+                    "af": float(refined.af),
+                    "ff": float(refined.ff),
+                    "sf": float(refined.sf),
+                    "left_expand_scans": int(refined.left_expand_scans),
+                    "right_expand_scans": int(refined.right_expand_scans),
+                    "left_rebound_stop": bool(refined.left_rebound_stop),
+                    "right_rebound_stop": bool(refined.right_rebound_stop),
+                    "oversized_shrink": bool(refined.oversized_shrink),
                 }
             )
 
@@ -301,12 +272,28 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--local-half-window-min", type=float, default=1.0)
     p.add_argument("--sigma-mult", type=float, default=3.0)
     p.add_argument("--min-rel-height", type=float, default=0.02)
-    p.add_argument("--expand-scans", type=int, default=1)
-
+    p.add_argument("--smooth-window-scans", type=int, default=5, help="LWMA smoothing window in scans")
+    p.add_argument("--smooth-passes", type=int, default=2, help="How many smoothing passes to apply")
     p.add_argument(
-        "--use-apex-as-rt",
-        action="store_true",
-        help="Update RT to the detected apex RT",
+        "--expand-scans",
+        "--max-expand-scans",
+        dest="max_expand_scans",
+        type=int,
+        default=18,
+        help="Maximum scans used when extending a core boundary to a local minimum",
+    )
+    p.add_argument("--max-expand-min", type=float, default=0.35, help="Maximum RT extension from core boundary in minutes")
+    p.add_argument("--rise-patience", type=int, default=2, help="Allow short spike-like rises before stopping expansion")
+    p.add_argument("--rise-rel-tol", type=float, default=0.02, help="Treat tiny rises as still descending")
+    p.add_argument("--rebound-rel", type=float, default=0.12, help="Rollback to a local minimum if a rebound appears farther away")
+    p.add_argument("--boundary-confirm", type=int, default=2, help="Need this many baseline-like scans to confirm a core boundary")
+    p.add_argument("--oversize-factor", type=float, default=1.8, help="Shrink to core boundary if extended width is too large")
+    p.add_argument(
+        "--update-rt-mode",
+        type=str,
+        default="when_outside_bounds",
+        choices=["never", "when_outside_bounds", "always"],
+        help="Whether to update RT to the refined apex RT",
     )
     p.add_argument(
         "--rt-tol-sec",
@@ -322,8 +309,24 @@ def parse_args() -> argparse.Namespace:
         raise ValueError("--search-half-window-min must be > 0")
     if args.local_half_window_min <= 0:
         raise ValueError("--local-half-window-min must be > 0")
-    if args.expand_scans < 0:
-        raise ValueError("--expand-scans must be >= 0")
+    if args.smooth_window_scans <= 0:
+        raise ValueError("--smooth-window-scans must be > 0")
+    if args.smooth_passes <= 0:
+        raise ValueError("--smooth-passes must be > 0")
+    if args.max_expand_scans < 0:
+        raise ValueError("--max-expand-scans must be >= 0")
+    if args.max_expand_min < 0:
+        raise ValueError("--max-expand-min must be >= 0")
+    if args.rise_patience < 0:
+        raise ValueError("--rise-patience must be >= 0")
+    if args.rise_rel_tol < 0:
+        raise ValueError("--rise-rel-tol must be >= 0")
+    if args.rebound_rel < 0:
+        raise ValueError("--rebound-rel must be >= 0")
+    if args.boundary_confirm <= 0:
+        raise ValueError("--boundary-confirm must be > 0")
+    if args.oversize_factor <= 1.0:
+        raise ValueError("--oversize-factor must be > 1.0")
     if args.min_rel_height <= 0 or args.min_rel_height >= 1:
         raise ValueError("--min-rel-height must be in (0,1)")
     return args

@@ -12,11 +12,15 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.amp import GradScaler, autocast
 from PIL import Image
 from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
+    confusion_matrix,
     f1_score,
+    precision_score,
+    recall_score,
     roc_auc_score,
 )
 from torch.utils.data import DataLoader, Dataset
@@ -51,6 +55,7 @@ class PeakFusionDataset(Dataset):
         transform: transforms.Compose | None = None,
         class_to_id: dict[str, int] | None = None,
         attr_scaler: AttrScaler | None = None,
+        load_image: bool = True,
     ) -> None:
         self.df = pd.read_csv(csv_path)
         self.image_root = image_root
@@ -60,6 +65,7 @@ class PeakFusionDataset(Dataset):
         self.transform = transform
         self.class_to_id = class_to_id
         self.attr_scaler = attr_scaler
+        self.load_image = bool(load_image)
 
         required = [image_col, label_col, *self.attr_columns]
         missing = [c for c in required if c not in self.df.columns]
@@ -69,9 +75,13 @@ class PeakFusionDataset(Dataset):
         self.samples: list[SampleSpec] = []
         for _, row in self.df.iterrows():
             rel = Path(str(row[image_col]))
-            img_path = (self.image_root / rel).resolve()
-            if not img_path.exists():
-                continue
+            if self.load_image:
+                img_path = (self.image_root / rel).resolve()
+                if not img_path.exists():
+                    continue
+            else:
+                # Attr-only mode does not need disk image loading.
+                img_path = rel
 
             raw_label = row[label_col]
             if self.class_to_id is None:
@@ -106,9 +116,12 @@ class PeakFusionDataset(Dataset):
 
     def __getitem__(self, idx: int):
         spec = self.samples[idx]
-        image = Image.open(spec.image_path).convert("RGB")
-        if self.transform is not None:
-            image = self.transform(image)
+        if self.load_image:
+            image = Image.open(spec.image_path).convert("RGB")
+            if self.transform is not None:
+                image = self.transform(image)
+        else:
+            image = torch.zeros((3, 1, 1), dtype=torch.float32)
         return image, spec.attrs, torch.tensor(spec.label, dtype=torch.long)
 
 
@@ -232,50 +245,94 @@ class FusionModel(nn.Module):
         lwga_groups: int = 8,
         lwga_mlp_ratio: float = 2.0,
         lwga_dropout: float = 0.0,
+        model_mode: str = "gated_fusion",
     ) -> None:
         super().__init__()
-        self.backbone = VisionBackbone(
-            vision_backbone=vision_backbone,
-            pretrained=pretrained,
-            lwga_depth=lwga_depth,
-            lwga_groups=lwga_groups,
-            lwga_mlp_ratio=lwga_mlp_ratio,
-            lwga_dropout=lwga_dropout,
-        )
-        in_dim = self.backbone.out_dim
+        mode = str(model_mode).strip().lower()
+        valid_modes = {"image_only", "attr_only", "naive_concat", "gated_fusion"}
+        if mode not in valid_modes:
+            raise ValueError(f"Unsupported model_mode={model_mode}, choose from {sorted(valid_modes)}")
+        self.model_mode = mode
 
-        self.attr_encoder = nn.Sequential(
-            nn.Linear(attr_dim, 64),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(64, 64),
-            nn.GELU(),
-        )
+        if self.model_mode != "attr_only":
+            self.backbone: VisionBackbone | None = VisionBackbone(
+                vision_backbone=vision_backbone,
+                pretrained=pretrained,
+                lwga_depth=lwga_depth,
+                lwga_groups=lwga_groups,
+                lwga_mlp_ratio=lwga_mlp_ratio,
+                lwga_dropout=lwga_dropout,
+            )
+            in_dim = self.backbone.out_dim
+        else:
+            self.backbone = None
+            in_dim = 0
 
-        self.gate = nn.Sequential(
-            nn.Linear(in_dim + 64, 256),
-            nn.GELU(),
-            nn.Linear(256, in_dim),
-            nn.Sigmoid(),
-        )
+        if self.model_mode != "image_only":
+            self.attr_encoder: nn.Sequential | None = nn.Sequential(
+                nn.Linear(attr_dim, 64),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(64, 64),
+                nn.GELU(),
+            )
+        else:
+            self.attr_encoder = None
+
+        if self.model_mode == "gated_fusion":
+            self.gate: nn.Sequential | None = nn.Sequential(
+                nn.Linear(in_dim + 64, 256),
+                nn.GELU(),
+                nn.Linear(256, in_dim),
+                nn.Sigmoid(),
+            )
+        else:
+            self.gate = None
+
+        if self.model_mode == "image_only":
+            classifier_in = in_dim
+        elif self.model_mode == "attr_only":
+            classifier_in = 64
+        else:
+            classifier_in = in_dim + 64
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_dim + 64, 256),
+            nn.Linear(classifier_in, 256),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(256, out_dim),
         )
 
     def forward(self, image: torch.Tensor, attrs: torch.Tensor) -> torch.Tensor:
+        if self.model_mode == "image_only":
+            if self.backbone is None:
+                raise RuntimeError("image_only mode requires backbone")
+            img_feat = self.backbone(image)
+            return self.classifier(img_feat)
+
+        if self.model_mode == "attr_only":
+            if self.attr_encoder is None:
+                raise RuntimeError("attr_only mode requires attr_encoder")
+            attr_feat = self.attr_encoder(attrs)
+            return self.classifier(attr_feat)
+
+        if self.backbone is None or self.attr_encoder is None:
+            raise RuntimeError(f"mode={self.model_mode} requires both image and attr branches")
+
         img_feat = self.backbone(image)
         attr_feat = self.attr_encoder(attrs)
-        fused = torch.cat([img_feat, attr_feat], dim=1)
 
+        if self.model_mode == "naive_concat":
+            final_feat = torch.cat([img_feat, attr_feat], dim=1)
+            return self.classifier(final_feat)
+
+        if self.gate is None:
+            raise RuntimeError("gated_fusion mode requires gate")
+        fused = torch.cat([img_feat, attr_feat], dim=1)
         gate = self.gate(fused)
         gated_img_feat = img_feat * gate
         final_feat = torch.cat([gated_img_feat, attr_feat], dim=1)
-        logits = self.classifier(final_feat)
-        return logits
+        return self.classifier(final_feat)
 
 
 def seed_everything(seed: int) -> None:
@@ -335,7 +392,13 @@ def build_eval_transform(input_size: int) -> transforms.Compose:
     )
 
 
-def _evaluate_binary(model: nn.Module, loader: DataLoader, device: torch.device) -> dict[str, float]:
+def _evaluate_binary(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    use_amp: bool,
+) -> dict[str, float]:
     model.eval()
     all_labels: list[int] = []
     all_probs: list[float] = []
@@ -347,9 +410,10 @@ def _evaluate_binary(model: nn.Module, loader: DataLoader, device: torch.device)
             attrs = attrs.to(device)
             labels_f = labels.to(device).float()
 
-            logits = model(images, attrs).squeeze(1)
-            loss = F.binary_cross_entropy_with_logits(logits, labels_f)
-            probs = torch.sigmoid(logits)
+            with autocast(device_type=device.type, enabled=use_amp):
+                logits = model(images, attrs).squeeze(1)
+                loss = F.binary_cross_entropy_with_logits(logits, labels_f)
+                probs = torch.sigmoid(logits)
 
             loss_meter += float(loss.item()) * labels.shape[0]
             all_labels.extend(labels.cpu().tolist())
@@ -358,17 +422,35 @@ def _evaluate_binary(model: nn.Module, loader: DataLoader, device: torch.device)
     y_true = torch.tensor(all_labels).numpy()
     y_prob = torch.tensor(all_probs).numpy()
     y_pred = (y_prob >= 0.5).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+
+    try:
+        auc = float(roc_auc_score(y_true, y_prob))
+    except ValueError:
+        auc = float("nan")
 
     return {
         "val_loss": loss_meter / max(len(all_labels), 1),
-        "val_auc": float(roc_auc_score(y_true, y_prob)),
+        "val_auc": auc,
         "val_pr_auc": float(average_precision_score(y_true, y_prob)),
-        "val_f1": float(f1_score(y_true, y_pred)),
+        "val_f1": float(f1_score(y_true, y_pred, zero_division=0)),
+        "val_precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "val_recall": float(recall_score(y_true, y_pred, zero_division=0)),
         "val_acc": float(accuracy_score(y_true, y_pred)),
+        "val_tn": int(tn),
+        "val_fp": int(fp),
+        "val_fn": int(fn),
+        "val_tp": int(tp),
     }
 
 
-def _evaluate_multiclass(model: nn.Module, loader: DataLoader, device: torch.device) -> dict[str, float]:
+def _evaluate_multiclass(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    use_amp: bool,
+) -> dict[str, float]:
     model.eval()
     all_labels: list[int] = []
     all_preds: list[int] = []
@@ -380,9 +462,10 @@ def _evaluate_multiclass(model: nn.Module, loader: DataLoader, device: torch.dev
             attrs = attrs.to(device)
             labels = labels.to(device)
 
-            logits = model(images, attrs)
-            loss = F.cross_entropy(logits, labels)
-            preds = torch.argmax(logits, dim=1)
+            with autocast(device_type=device.type, enabled=use_amp):
+                logits = model(images, attrs)
+                loss = F.cross_entropy(logits, labels)
+                preds = torch.argmax(logits, dim=1)
 
             loss_meter += float(loss.item()) * labels.shape[0]
             all_labels.extend(labels.cpu().tolist())
@@ -415,6 +498,11 @@ def train(args: argparse.Namespace) -> None:
     seed_everything(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
+    use_amp = bool(args.amp and device.type == "cuda")
+    if device.type == "cuda":
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+    print(f"AMP enabled: {use_amp}")
 
     attr_columns = [c.strip() for c in args.attr_columns.split(",") if c.strip()]
     attr_scaler = build_attr_scaler_from_train_csv(Path(args.train_csv), attr_columns) if args.standardize_attrs else None
@@ -437,9 +525,14 @@ def train(args: argparse.Namespace) -> None:
         attr_columns=attr_columns,
         image_col=args.image_col,
         label_col=label_col,
-        transform=build_train_transform(enable_blur=args.enable_gaussian_blur, input_size=args.input_size),
+        transform=(
+            build_train_transform(enable_blur=args.enable_gaussian_blur, input_size=args.input_size)
+            if args.model_mode != "attr_only"
+            else None
+        ),
         class_to_id=class_to_id,
         attr_scaler=attr_scaler,
+        load_image=(args.model_mode != "attr_only"),
     )
     val_ds = PeakFusionDataset(
         csv_path=Path(args.val_csv),
@@ -447,9 +540,10 @@ def train(args: argparse.Namespace) -> None:
         attr_columns=attr_columns,
         image_col=args.image_col,
         label_col=label_col,
-        transform=build_eval_transform(input_size=args.input_size),
+        transform=(build_eval_transform(input_size=args.input_size) if args.model_mode != "attr_only" else None),
         class_to_id=class_to_id,
         attr_scaler=attr_scaler,
+        load_image=(args.model_mode != "attr_only"),
     )
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -465,13 +559,15 @@ def train(args: argparse.Namespace) -> None:
         lwga_groups=args.lwga_groups,
         lwga_mlp_ratio=args.lwga_mlp_ratio,
         lwga_dropout=args.lwga_dropout,
+        model_mode=args.model_mode,
     ).to(device)
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(
-        f"Model: {args.vision_backbone}, params={trainable_params / 1e6:.2f}M, "
+        f"Model: {args.vision_backbone}, mode={args.model_mode}, params={trainable_params / 1e6:.2f}M, "
         f"lwga_depth={args.lwga_depth}, lwga_groups={args.lwga_groups}"
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    scaler = GradScaler(device.type, enabled=use_amp)
 
     save_dir = Path(args.save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -500,25 +596,27 @@ def train(args: argparse.Namespace) -> None:
             attrs = attrs.to(device)
             labels = labels.to(device)
 
-            logits = model(images, attrs)
-            if args.task_type == "binary":
-                loss = F.binary_cross_entropy_with_logits(logits.squeeze(1), labels.float())
-            else:
-                loss = F.cross_entropy(logits, labels)
+            optimizer.zero_grad(set_to_none=True)
+            with autocast(device_type=device.type, enabled=use_amp):
+                logits = model(images, attrs)
+                if args.task_type == "binary":
+                    loss = F.binary_cross_entropy_with_logits(logits.squeeze(1), labels.float())
+                else:
+                    loss = F.cross_entropy(logits, labels)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             running_loss += float(loss.item()) * labels.shape[0]
             seen += labels.shape[0]
 
         train_loss = running_loss / max(seen, 1)
         if args.task_type == "binary":
-            metrics = _evaluate_binary(model, val_loader, device)
+            metrics = _evaluate_binary(model, val_loader, device, use_amp=use_amp)
             best_metric_name = "val_auc"
         else:
-            metrics = _evaluate_multiclass(model, val_loader, device)
+            metrics = _evaluate_multiclass(model, val_loader, device, use_amp=use_amp)
             best_metric_name = "val_f1_macro"
 
         record = {"epoch": epoch, "train_loss": train_loss, **metrics}
@@ -607,6 +705,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lwga-mlp-ratio", type=float, default=2.0, help="LWGA FFN expansion ratio")
     p.add_argument("--lwga-dropout", type=float, default=0.0, help="LWGA attention/FFN dropout")
     p.add_argument("--save-dir", type=str, default="PeakTruthLab/models/convnext_fusion")
+    p.add_argument(
+        "--model-mode",
+        type=str,
+        default="gated_fusion",
+        choices=["image_only", "attr_only", "naive_concat", "gated_fusion"],
+        help="Ablation mode for multimodal fusion",
+    )
+    p.add_argument("--amp", action="store_true", help="Enable automatic mixed precision on CUDA")
     args = p.parse_args()
     args.standardize_attrs = not bool(args.no_standardize_attrs)
 

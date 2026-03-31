@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import pandas as pd
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -118,7 +118,15 @@ def _run_single_xcms(mzml_path: Path, out_csv: Path, p: XcmsParams, tmp_root: Pa
     shutil.rmtree(run_dir, ignore_errors=True)
 
 
-def _extract_single_file_table(raw_csv: Path, source_file: str, source_path: str, top_n: int) -> pd.DataFrame:
+def _extract_single_file_table(
+    raw_csv: Path,
+    source_file: str,
+    source_path: str,
+    top_n: int,
+    *,
+    sample_random: bool,
+    seed: int,
+) -> pd.DataFrame:
     x = pd.read_csv(raw_csv)
     need = ["Row.names", "mzmed", "rtmed", "rtmin", "rtmax", "maxo", "into"]
     miss = [c for c in need if c not in x.columns]
@@ -138,7 +146,11 @@ def _extract_single_file_table(raw_csv: Path, source_file: str, source_path: str
     x = x.sort_values(["area", "maxo"], ascending=[False, False], kind="mergesort")
 
     if top_n > 0:
-        x = x.head(top_n).copy()
+        if sample_random:
+            n = min(int(top_n), len(x))
+            x = x.sample(n=n, random_state=int(seed)).copy()
+        else:
+            x = x.head(top_n).copy()
 
     x["row_id"] = pd.to_numeric(x["Row.names"], errors="coerce")
     x["row_id"] = x["row_id"].fillna(pd.Series(range(1, len(x) + 1), index=x.index)).astype(int)
@@ -296,13 +308,18 @@ def rebuild(args: argparse.Namespace) -> None:
         xcms_raw = xcms_out_root / f"{stem}_xcms_raw.csv"
 
         print(f"[XCMS] {source_file} keep_n={keep_n}")
-        _run_single_xcms(mzml_path=mzml_path, out_csv=xcms_raw, p=params, tmp_root=xcms_out_root)
+        if bool(args.reuse_xcms_raw) and xcms_raw.exists():
+            print(f"[XCMS] reuse existing raw csv: {xcms_raw}")
+        else:
+            _run_single_xcms(mzml_path=mzml_path, out_csv=xcms_raw, p=params, tmp_root=xcms_out_root)
 
         one = _extract_single_file_table(
             raw_csv=xcms_raw,
             source_file=source_file,
             source_path=str(mzml_path),
             top_n=keep_n,
+            sample_random=bool(args.sample_random),
+            seed=int(args.seed),
         )
 
         if len(one) < keep_n:
@@ -384,6 +401,9 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated source_file names with .mzML",
     )
     p.add_argument("--default-top-n", type=int, default=523)
+    p.add_argument("--reuse-xcms-raw", action="store_true", help="Reuse existing <stem>_xcms_raw.csv if present")
+    p.add_argument("--sample-random", action="store_true", help="Randomly sample N features per file instead of taking top-N by area")
+    p.add_argument("--seed", type=int, default=42, help="Random seed for --sample-random")
     args = p.parse_args()
     if args.default_top_n <= 0:
         raise ValueError("--default-top-n must be > 0")

@@ -2,6 +2,10 @@
 *.mzML
 *.raw
 *.cdf
+*.csv
+*.txt
+
+
 
 # 忽略Python产生的缓存垃圾
 __pycache__/

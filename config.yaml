@@ -20,9 +20,9 @@ parameters:
   xcms:
     peak_picking:
       method: "centWave"
-      noise: 10000
+      noise: 3000
       snthresh: 5
-      ppm: 10
+      ppm: 5
       peakwidth: [5, 50]
       prefilter_val: 3
       mzdiff: 0.001
