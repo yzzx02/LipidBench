@@ -427,6 +427,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
     report_csv = Path(args.report_csv).resolve() if args.report_csv else None
     images_root = Path(args.images_root).resolve()
     backup_dir = Path(args.backup_dir).resolve()
+    enable_backup = bool(args.enable_backup)
 
     if not input_csv.exists():
         raise FileNotFoundError(f"input csv not found: {input_csv}")
@@ -788,7 +789,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
         df = df.drop(index=sorted(set(delete_indices))).reset_index(drop=True)
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
-    backup_path = _backup_final_csv_if_needed(output_csv, backup_dir)
+    backup_path = _backup_final_csv_if_needed(output_csv, backup_dir) if enable_backup else None
     df.to_csv(output_csv, index=False)
 
     rep = pd.DataFrame(report_rows)
@@ -809,6 +810,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
     print(f"deleted_rows:    {n_del}")
     print(f"skipped_rows:    {n_skip}")
     print(f"error_rows:      {n_err}")
+    print(f"enable_backup:   {enable_backup}")
     if report_csv:
         print(f"report_csv:      {report_csv}")
     if backup_path is not None:
@@ -822,6 +824,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--report-csv", type=str, default="PeakTruthLab/results/rt_bounds_from_labelme_report.csv")
     p.add_argument("--images-root", type=str, default="PeakTruthLab/datasets/eic_images_flat")
     p.add_argument("--backup-dir", type=str, default="PeakTruthLab/datasets/backups")
+    p.add_argument("--enable-backup", action="store_true")
 
     p.add_argument(
         "--only-source-files",

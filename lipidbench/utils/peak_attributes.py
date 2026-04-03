@@ -144,6 +144,38 @@ def _width_at_fraction(rt: np.ndarray, y: np.ndarray, apex_idx: int, frac: float
     return left_rt, right_rt, width
 
 
+def _width_at_fraction_or_edges(rt: np.ndarray, y: np.ndarray, apex_idx: int, frac: float) -> tuple[float, float, float] | None:
+    if y.size < 2:
+        return None
+    apex = float(y[apex_idx])
+    if not np.isfinite(apex) or apex <= 0:
+        return None
+    level = float(frac) * apex
+
+    li = int(apex_idx)
+    while li > 0 and y[li] >= level:
+        li -= 1
+    if li == 0 and y[li] >= level:
+        left_rt = float(rt[0])
+    elif li < apex_idx:
+        left_rt = _interp_crossing(rt, y, li, li + 1, level)
+    else:
+        return None
+
+    ri = int(apex_idx)
+    while ri < (len(y) - 1) and y[ri] >= level:
+        ri += 1
+    if ri == (len(y) - 1) and y[ri] >= level:
+        right_rt = float(rt[-1])
+    elif ri > apex_idx:
+        right_rt = _interp_crossing(rt, y, ri - 1, ri, level)
+    else:
+        return None
+
+    width = float(max(right_rt - left_rt, 0.0))
+    return left_rt, right_rt, width
+
+
 def _robust_noise_baseline(y: np.ndarray) -> tuple[float, float]:
     if y.size == 0:
         return 0.0, 0.0
@@ -254,7 +286,7 @@ def _compute_literature_top_features(rt_win: np.ndarray, eic_win: np.ndarray, ap
         out["TPAS"] = float(np.log10(max(0.5 * n * xA / den_sum, eps)))
 
     # (7) H2B
-    fwhm_pack = _width_at_fraction(rt_win, x, apex_idx, 0.5)
+    fwhm_pack = _width_at_fraction_or_edges(rt_win, x, apex_idx, 0.5)
     if fwhm_pack is not None and rt_win.size >= 2:
         left_rt, right_rt, _ = fwhm_pack
         base = float(rt_win[-1] - rt_win[0])

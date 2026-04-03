@@ -48,6 +48,7 @@ def recompute(args: argparse.Namespace) -> None:
     output_csv = Path(args.output_csv).resolve()
     report_csv = Path(args.report_csv).resolve() if args.report_csv else None
     backup_dir = Path(args.backup_dir).resolve()
+    enable_backup = bool(args.enable_backup)
 
     if not input_csv.exists():
         raise FileNotFoundError(f"input csv not found: {input_csv}")
@@ -205,13 +206,14 @@ def recompute(args: argparse.Namespace) -> None:
             df.at[i, k] = v
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
-    backup_path = _backup_final_csv_if_needed(output_csv, backup_dir)
+    backup_path = _backup_final_csv_if_needed(output_csv, backup_dir) if enable_backup else None
     df.to_csv(output_csv, index=False)
 
     print("done")
     print(f"input_csv:      {input_csv}")
     print(f"output_csv:     {output_csv}")
-    print(f"updated_rows:    {len(updates)}")
+    print(f"updated_rows:   {len(updates)}")
+    print(f"enable_backup:  {enable_backup}")
 
     if report_csv:
         rep = pd.DataFrame(report_rows)
@@ -251,6 +253,7 @@ def parse_args() -> argparse.Namespace:
         default="PeakTruthLab/datasets/backups",
         help="Backup directory used before overwriting feature_table_final_10000.csv",
     )
+    p.add_argument("--enable-backup", action="store_true", help="Save a CSV backup before overwriting")
     p.add_argument(
         "--feature-id",
         type=str,

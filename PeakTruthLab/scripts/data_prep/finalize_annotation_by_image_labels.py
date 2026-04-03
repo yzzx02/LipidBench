@@ -59,6 +59,14 @@ def _parse_source_filter(v: str) -> set[str]:
     return {x.strip() for x in str(v).split(",") if x.strip()}
 
 
+def _parse_exact_label_set(v: str) -> set[str]:
+    return {x.strip() for x in str(v).split(",") if x.strip()}
+
+
+def _clean_label(v: str) -> str:
+    return str(v).strip()
+
+
 def _norm_label(v: str) -> str:
     return str(v).strip().lower().replace("-", "_")
 
@@ -177,12 +185,24 @@ def _label_names_from_obj(obj: dict[str, Any]) -> list[str]:
     return out
 
 
-def _json_has_d_label(json_path: Path) -> bool:
+def _label_flags(
+    labels: list[str],
+    *,
+    delete_labels: set[str],
+    uncertain_labels: set[str],
+) -> tuple[bool, bool]:
+    cleaned = {_clean_label(x) for x in labels if _clean_label(x)}
+    return bool(cleaned & delete_labels), bool(cleaned & uncertain_labels)
+
+
+def _json_has_any_exact_label(json_path: Path, labels: set[str]) -> bool:
+    if not labels:
+        return False
     try:
         obj = json.loads(json_path.read_text(encoding="utf-8"))
     except Exception:
         return False
-    return "d" in {_norm_label(x) for x in _label_names_from_obj(obj)}
+    return any(_clean_label(x) in labels for x in _label_names_from_obj(obj))
 
 
 def _render_eic_png(
@@ -240,6 +260,7 @@ def finalize(args: argparse.Namespace) -> None:
     reserved_root = Path(args.reserved_images_root).resolve()
     report_csv = Path(args.report_csv).resolve()
     backup_dir = Path(args.backup_dir).resolve()
+    enable_backup = bool(args.enable_backup)
 
     if not input_csv.exists():
         raise FileNotFoundError(f"input csv not found: {input_csv}")
@@ -262,6 +283,11 @@ def finalize(args: argparse.Namespace) -> None:
     reserved_json_index = _build_file_index(reserved_root, (".json",)) if reserved_root.exists() else {}
     label_source = str(args.label_source)
     source_filter = _parse_source_filter(args.only_source_files)
+    delete_labels = _parse_exact_label_set(args.delete_labels)
+    uncertain_labels = _parse_exact_label_set(args.uncertain_labels)
+    overlap_labels = sorted(delete_labels & uncertain_labels)
+    if overlap_labels:
+        raise ValueError(f"delete-labels and uncertain-labels overlap: {overlap_labels}")
 
     csv_ids = set(df["Feature_ID"].astype(str))
     all_annot_ids = sorted(true_ids | false_ids)
@@ -278,12 +304,12 @@ def finalize(args: argparse.Namespace) -> None:
         if fid in csv_ids and fid not in active_png_index and fid not in reserved_png_index
     ]
     if label_source == "active_json":
-        extra_active_d_ids: list[str] = []
+        extra_active_delete_ids: list[str] = []
     else:
-        extra_active_d_ids = sorted(
+        extra_active_delete_ids = sorted(
             fid
             for fid, json_path in active_json_index.items()
-            if fid in csv_ids and fid not in all_annot_ids and _json_has_d_label(json_path)
+            if fid in csv_ids and fid not in all_annot_ids and _json_has_any_exact_label(json_path, delete_labels)
         )
 
     row_index = {str(fid): int(i) for i, fid in df["Feature_ID"].items()}
@@ -327,7 +353,7 @@ def finalize(args: argparse.Namespace) -> None:
             }
         )
 
-    for fid in extra_active_d_ids:
+    for fid in extra_active_delete_ids:
         idx = row_index[fid]
         json_path = active_json_index[fid]
         png_path = active_png_index.get(fid)
@@ -339,13 +365,13 @@ def finalize(args: argparse.Namespace) -> None:
         report_rows.append(
             {
                 "Feature_ID": fid,
-                "status": "deleted_D_active_only",
+                "status": "deleted_delete_label_active_only",
                 "annotation_folder": "",
                 "json_path": str(json_path),
                 "old_RT": float(row["RT"]) if pd.notna(row["RT"]) else np.nan,
                 "old_RTmin": float(row["RTmin"]) if pd.notna(row["RTmin"]) else np.nan,
                 "old_RTmax": float(row["RTmax"]) if pd.notna(row["RTmax"]) else np.nan,
-                "labels": "D",
+                "labels": "|".join(sorted(delete_labels)),
             }
         )
 
@@ -413,10 +439,14 @@ def finalize(args: argparse.Namespace) -> None:
             continue
 
         ann = _load_labelme_annotation(json_path)
-        labels = _label_names_from_obj(ann["obj"]) if isinstance(ann.get("obj"), dict) else []
-        norm_labels = {_norm_label(x) for x in labels}
+        labels = [_clean_label(x) for x in _label_names_from_obj(ann["obj"]) if _clean_label(x)] if isinstance(ann.get("obj"), dict) else []
+        has_delete_label, has_uncertain_label = _label_flags(
+            labels,
+            delete_labels=delete_labels,
+            uncertain_labels=uncertain_labels,
+        )
 
-        if "d" in norm_labels:
+        if has_delete_label:
             delete_indices.add(idx)
             delete_asset_specs.append((png_path, archive_active_root / png_path.relative_to(active_root)))
             delete_asset_specs.append((json_path, archive_active_root / json_path.relative_to(active_root)))
@@ -426,7 +456,7 @@ def finalize(args: argparse.Namespace) -> None:
             report_rows.append(
                 {
                     "Feature_ID": fid,
-                    "status": "deleted_D",
+                    "status": "deleted_delete_label",
                     "annotation_folder": annotation_folder,
                     "json_path": str(json_path),
                     "old_RT": old_rt,
@@ -438,10 +468,16 @@ def finalize(args: argparse.Namespace) -> None:
             continue
 
         if label_source == "active_json":
-            new_label = 0 if (bool(ann.get("is_empty", False)) or ann.get("rect_idx") is None) else 1
+            if has_uncertain_label:
+                new_label = np.nan
+            else:
+                new_label = 0 if (bool(ann.get("is_empty", False)) or ann.get("rect_idx") is None) else 1
         else:
-            # Default all non-D annotated samples to positive unless explicitly put in false_peak folder later.
-            new_label = int(default_label) if pd.notna(default_label) else 1
+            # Default all non-delete annotated samples to positive unless explicitly put in false_peak folder later.
+            if has_uncertain_label:
+                new_label = np.nan
+            else:
+                new_label = int(default_label) if pd.notna(default_label) else 1
 
         if bool(ann.get("is_empty", False)) or ann.get("rect_idx") is None:
             attrs = _recompute_attrs_with_bounds(
@@ -463,7 +499,7 @@ def finalize(args: argparse.Namespace) -> None:
             report_rows.append(
                 {
                     "Feature_ID": fid,
-                    "status": "fallback_original_no_box",
+                    "status": "uncertain_no_box_keep_original" if has_uncertain_label else "fallback_original_no_box",
                     "annotation_folder": annotation_folder,
                     "json_path": str(json_path),
                     "old_RT": old_rt,
@@ -543,7 +579,7 @@ def finalize(args: argparse.Namespace) -> None:
                 report_rows.append(
                     {
                         "Feature_ID": fid,
-                        "status": "skip_tiny_box_keep_original",
+                        "status": "uncertain_tiny_box_keep_original" if has_uncertain_label else "skip_tiny_box_keep_original",
                         "annotation_folder": annotation_folder,
                         "json_path": str(json_path),
                         "old_RT": old_rt,
@@ -644,49 +680,55 @@ def finalize(args: argparse.Namespace) -> None:
             if new_rtmax < new_rtmin:
                 new_rtmin, new_rtmax = new_rtmax, new_rtmin
 
-            # Sync corrected X bounds back into the active JSON.
-            mid_y_px = ih * 0.5
-            x_new_l = _rt_to_pixel_x(ax, new_rtmin, mid_y_px, ih)
-            x_new_r = _rt_to_pixel_x(ax, new_rtmax, mid_y_px, ih)
             rect_idx = int(ann["rect_idx"])
             pts = ann["obj"]["shapes"][rect_idx]["points"]
+            rerendered_image = False
+            rerender_reason = ""
+            rerender_mode = str(args.rerender_box_image)
+            if rerender_mode == "always":
+                rerendered_image = True
+                rerender_reason = "always"
+            elif rerender_mode == "recenter_only":
+                if bool(args.recenter_changed_peak) and (
+                    (not old_rt_in_box) or (box_center_offset_px >= float(args.recenter_box_offset_px))
+                ):
+                    rerendered_image = True
+                    rerender_reason = "rt_outside_box" if not old_rt_in_box else "box_far_from_center"
+
+            ann["obj"]["imagePath"] = png_path.name
+            ann["obj"]["imageWidth"] = int(iw)
+            ann["obj"]["imageHeight"] = int(ih)
+            mid_y_px = ih * 0.5
+            if rerendered_image:
+                _render_eic_png(
+                    png_path,
+                    rt=rt,
+                    eic=eic,
+                    center_rt=float(new_rt),
+                    window_min=float(args.window_min),
+                    width_px=int(iw),
+                    height_px=int(ih),
+                    dpi=int(args.image_dpi),
+                )
+                rt_win_new, eic_win_new = _extract_window(rt, eic, center_rt=float(new_rt), window_min=float(args.window_min))
+                fig2, ax2 = _build_axis(
+                    rt_win_new,
+                    eic_win_new,
+                    center_rt=float(new_rt),
+                    width_px=iw,
+                    height_px=ih,
+                    dpi=int(args.image_dpi),
+                )
+                try:
+                    x_new_l = _rt_to_pixel_x(ax2, new_rtmin, mid_y_px, ih)
+                    x_new_r = _rt_to_pixel_x(ax2, new_rtmax, mid_y_px, ih)
+                finally:
+                    plt.close(fig2)
+            else:
+                x_new_l = _rt_to_pixel_x(ax, new_rtmin, mid_y_px, ih)
+                x_new_r = _rt_to_pixel_x(ax, new_rtmax, mid_y_px, ih)
             pts[0][0] = float(min(x_new_l, x_new_r))
             pts[1][0] = float(max(x_new_l, x_new_r))
-            recentered_image = False
-            recenter_reason = ""
-            if bool(args.recenter_changed_peak):
-                if (not old_rt_in_box) or (box_center_offset_px >= float(args.recenter_box_offset_px)):
-                    recentered_image = True
-                    recenter_reason = "rt_outside_box" if not old_rt_in_box else "box_far_from_center"
-                    _render_eic_png(
-                        png_path,
-                        rt=rt,
-                        eic=eic,
-                        center_rt=float(new_rt),
-                        window_min=float(args.window_min),
-                        width_px=int(iw),
-                        height_px=int(ih),
-                        dpi=int(args.image_dpi),
-                    )
-                    rt_win_new, eic_win_new = _extract_window(rt, eic, center_rt=float(new_rt), window_min=float(args.window_min))
-                    fig2, ax2 = _build_axis(
-                        rt_win_new,
-                        eic_win_new,
-                        center_rt=float(new_rt),
-                        width_px=iw,
-                        height_px=ih,
-                        dpi=int(args.image_dpi),
-                    )
-                    try:
-                        x_new_l = _rt_to_pixel_x(ax2, new_rtmin, mid_y_px, ih)
-                        x_new_r = _rt_to_pixel_x(ax2, new_rtmax, mid_y_px, ih)
-                    finally:
-                        plt.close(fig2)
-                    pts[0][0] = float(min(x_new_l, x_new_r))
-                    pts[1][0] = float(max(x_new_l, x_new_r))
-                    ann["obj"]["imagePath"] = png_path.name
-                    ann["obj"]["imageWidth"] = int(iw)
-                    ann["obj"]["imageHeight"] = int(ih)
             if not args.dry_run:
                 with json_path.open("w", encoding="utf-8") as f:
                     json.dump(ann["obj"], f, ensure_ascii=False, indent=2)
@@ -719,7 +761,7 @@ def finalize(args: argparse.Namespace) -> None:
         report_rows.append(
             {
                 "Feature_ID": fid,
-                "status": "updated_from_box",
+                "status": "uncertain_updated_from_box" if has_uncertain_label else "updated_from_box",
                 "annotation_folder": annotation_folder,
                 "json_path": str(json_path),
                 "old_RT": old_rt,
@@ -743,8 +785,10 @@ def finalize(args: argparse.Namespace) -> None:
                 "bound_mode": str(bound_mode),
                 "low_threshold": float(low_thr),
                 "oversized_shrink": bool(oversized),
-                "recentered_image": bool(recentered_image),
-                "recenter_reason": str(recenter_reason),
+                "rerendered_image": bool(rerendered_image),
+                "rerender_reason": str(rerender_reason),
+                "recentered_image": bool(rerendered_image),
+                "recenter_reason": str(rerender_reason),
                 "is_true_peak": new_label,
                 "labels": "|".join(labels),
             }
@@ -759,11 +803,14 @@ def finalize(args: argparse.Namespace) -> None:
         out_df = out_df.drop(index=sorted(delete_indices)).reset_index(drop=True)
 
     if not args.dry_run:
-        backup_path = _backup_final_csv_if_needed(output_csv, backup_dir)
+        backup_path = _backup_final_csv_if_needed(output_csv, backup_dir) if enable_backup else None
         for src, dst in delete_asset_specs:
             if src.exists():
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(src), str(dst))
+                if enable_backup:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(src), str(dst))
+                else:
+                    src.unlink()
         output_csv.parent.mkdir(parents=True, exist_ok=True)
         out_df.to_csv(output_csv, index=False)
     else:
@@ -783,22 +830,26 @@ def finalize(args: argparse.Namespace) -> None:
     print(f"active_images_root:     {active_root}")
     print(f"reserved_images_root:   {reserved_root}")
     print(f"label_source:           {label_source}")
+    print(f"delete_labels:          {sorted(delete_labels)}")
+    print(f"uncertain_labels:       {sorted(uncertain_labels)}")
+    print(f"enable_backup:          {enable_backup}")
+    print(f"rerender_box_image:     {args.rerender_box_image}")
     print(f"annot_true_pngs:        {len(true_ids)}")
     print(f"annot_false_pngs:       {len(false_ids)}")
     print(f"processable_active_ids: {len(active_ids)}")
     print(f"reserved_skipped_ids:   {len(reserved_ids)}")
     print(f"stale_annotation_ids:   {len(stale_ids)}")
     print(f"missing_asset_ids:      {len(missing_asset_ids)}")
-    print(f"extra_active_D_ids:     {len(extra_active_d_ids)}")
+    print(f"extra_active_delete_ids:{len(extra_active_delete_ids)}")
     print(f"rows_updated:           {len(updates)}")
-    print(f"rows_deleted_D:         {len(delete_indices)}")
+    print(f"rows_deleted_label:     {len(delete_indices)}")
     print(f"delete_asset_moves:     {len(delete_asset_specs)}")
     print(f"dry_run:                {bool(args.dry_run)}")
     print(f"report_csv:             {report_csv}")
     print(f"status_counts:          {status_counts}")
     if backup_path is not None:
         print(f"backup_csv:             {backup_path}")
-    if not args.dry_run:
+    if not args.dry_run and enable_backup:
         print(f"archive_root:           {archive_root}")
 
 
@@ -813,6 +864,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--reserved-images-root", type=str, default="PeakTruthLab/datasets/eic_images_flat_2")
     p.add_argument("--report-csv", type=str, default="PeakTruthLab/results/finalize_annotation_by_image_report.csv")
     p.add_argument("--backup-dir", type=str, default="PeakTruthLab/datasets/backups")
+    p.add_argument("--enable-backup", action="store_true", help="Save CSV/assets backup before overwriting or deleting files")
     p.add_argument("--source-search-root", type=str, default=str(PROJECT_ROOT))
     p.add_argument("--only-source-files", type=str, default="", help="Optional comma-separated source_file names to process")
     p.add_argument(
@@ -822,6 +874,8 @@ def parse_args() -> argparse.Namespace:
         choices=["annotation_folder", "active_json"],
         help="Use annotation_by_image folder membership or active JSON box/no-box state as labels",
     )
+    p.add_argument("--delete-labels", type=str, default="D", help="Exact label names that remove a sample from the dataset")
+    p.add_argument("--uncertain-labels", type=str, default="d", help="Exact label names that keep a sample but set is_true_peak empty")
     p.add_argument("--dry-run", action="store_true")
 
     p.add_argument("--mz-tolerance", type=float, default=15.0)
@@ -842,6 +896,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--tiny-box-min-width-px", type=float, default=4.5)
     p.add_argument("--tiny-box-min-width-sec", type=float, default=1.0)
     p.add_argument("--tiny-box-min-scans", type=int, default=3)
+    p.add_argument(
+        "--rerender-box-image",
+        type=str,
+        default="recenter_only",
+        choices=["never", "recenter_only", "always"],
+        help="When to redraw PNGs for box-labeled samples after recomputing bounds",
+    )
     p.add_argument("--recenter-changed-peak", action="store_true")
     p.add_argument("--recenter-box-offset-px", type=float, default=60.0)
 
