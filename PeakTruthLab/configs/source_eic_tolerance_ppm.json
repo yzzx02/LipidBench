@@ -1,0 +1,50 @@
+{
+  "说明": "按原始LabelMe内嵌图片的EIC蓝线逐来源回溯；正式全量处理必须按来源使用，不能统一改为15 ppm。",
+  "审计日期": "2026-07-23",
+  "审计统计": {
+    "mzML来源数": 29,
+    "10ppm来源数": 9,
+    "15ppm来源数": 20,
+    "分层候选图片数": 2209,
+    "实际蓝线拟合图片数": 576,
+    "高置信来源数": 29
+  },
+  "source_tolerance_ppm": {
+    "0001_MAY_RoCI-StEM_CP-287.mzML": 15.0,
+    "0021_MAY_ROCI-StEM_HN_575.mzML": 15.0,
+    "060-0145-005_017.mzML": 15.0,
+    "060-0145-006_018.mzML": 10.0,
+    "20180321_S00033936_P.mzML": 10.0,
+    "20180323_S00033882_N.mzML": 10.0,
+    "6545A_20230727_-_57_18.mzML": 10.0,
+    "6545A_20230729_+_07_9.mzML": 10.0,
+    "6545_20201012_14_+_QC 01.mzML": 10.0,
+    "6545_20201012_22_+_QC 03.mzML": 10.0,
+    "AG-88-11_r12-.mzML": 10.0,
+    "AG-88-11_r2+.mzML": 10.0,
+    "Blood-15V.mzML": 15.0,
+    "Blood-30V.mzML": 15.0,
+    "D03P_POS.mzML": 15.0,
+    "D04P_NEG.mzML": 15.0,
+    "D06P_POS.mzML": 15.0,
+    "D07P_NEG.mzML": 15.0,
+    "HepG2-30V.mzML": 15.0,
+    "HetCD_mixneg.mzML": 15.0,
+    "NIST_Full scan_1_POS.mzML": 15.0,
+    "NIST_Full scan_2_NEG.mzML": 15.0,
+    "Sphingolipid-BTSPT-Cell-pellet_1.mzML": 15.0,
+    "Sphingolipid-BTSPT-OMV_1.mzML": 15.0,
+    "Sphingolipid-BTWT-Cell-pellet_1.mzML": 15.0,
+    "Urine-15V.mzML": 15.0,
+    "Urine-30V.mzML": 15.0,
+    "WTHFD_mixpos.mzML": 15.0,
+    "frag1_pos20_1.mzML": 15.0
+  },
+  "关键复核": {
+    "来源": "0021_MAY_ROCI-StEM_HN_575.mzML",
+    "试运行旧值_ppm": 10.0,
+    "正式修正值_ppm": 15.0,
+    "依据": "扩大容差敏感样本后，20张原图蓝线拟合中15 ppm胜11张、10 ppm胜0张；F182、F1510、F2463完整绘图中心穷举也均明确支持15 ppm。"
+  },
+  "完整审计证据": "D:\\LipidBench\\.codex_tmp\\ppm_audit\\source_tolerance_map.json"
+}

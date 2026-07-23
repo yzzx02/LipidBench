@@ -1,0 +1,11 @@
+{
+  "background": 0,
+  "labels": {
+    "True_Peak": 1
+  },
+  "ignored_labels": [],
+  "aliases": {
+    "TruePeak": "True_Peak",
+    "OUT_FIG": "True_Peak"
+  }
+}
