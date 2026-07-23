@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "说明性策略；本步骤未在全量数据上拟合任何插补或缩放参数",
+  "attribute_order": [
+    "SNR",
+    "CV",
+    "GS",
+    "TPAS",
+    "H2B",
+    "ZZ",
+    "DZZ",
+    "PCC",
+    "SKEW",
+    "DENT",
+    "DM",
+    "ENT",
+    "JAG"
+  ],
+  "attribute_count": 13,
+  "manifest_values": {
+    "source": "Seed CSV中的原始13项属性",
+    "missing_encoding": "JSON null",
+    "rule": "不重新计算、不覆盖原始Seed属性；真峰实例属性不输入Seed分类分支"
+  },
+  "training_only_fit_policy": {
+    "fit_partition": "train",
+    "forbidden_partitions_for_fit": [
+      "val",
+      "test"
+    ],
+    "imputation": {
+      "recommended_method": "逐属性训练集有限值中位数",
+      "preserve_missing_mask": true,
+      "apply_fitted_values_to": [
+        "train",
+        "val",
+        "test"
+      ],
+      "all_missing_training_attribute": "停止训练并人工检查；不得借用val/test统计量"
+    },
+    "scaling": {
+      "recommended_method": "逐属性训练集均值/标准差标准化",
+      "fit_after_imputation": true,
+      "apply_fitted_values_to": [
+        "train",
+        "val",
+        "test"
+      ],
+      "zero_or_near_zero_variance": "缩放因子置1并记录告警"
+    }
+  },
+  "not_generated_here": [
+    "属性中位数",
+    "属性均值",
+    "属性标准差",
+    "任何由全量、验证集或测试集拟合的统计量"
+  ]
+}
