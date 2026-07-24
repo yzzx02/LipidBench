@@ -43,3 +43,21 @@ Thumbs.db
 runs/
 tb_logs/
 models/
+
+# Keep the PeakTruthLab model package and canonical dataset metadata in Git.
+!/lipidbench/models/
+!/PeakTruthLab/configs/*.json
+!/PeakTruthLab/datasets/feature_table_final_15409.csv
+!/PeakTruthLab/datasets/feature_table_final_15409.audit.json
+!/requirements-dev.txt
+!/requirements-peak-common.txt
+!/requirements-peak-nvidia-cu128.txt
+
+# Review workbooks are local deliverables, not runtime inputs.
+*.xlsx
+
+# Local accelerator environments, diagnostics, results, and release builds.
+.venv*/
+.codex_tmp/
+PeakTruthLab/results/
+PeakTruthLab/releases/
