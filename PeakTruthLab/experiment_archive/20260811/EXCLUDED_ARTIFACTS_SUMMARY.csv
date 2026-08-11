@@ -1,0 +1,5 @@
+﻿category,file_count,bytes,size_gib,reason
+dataset release copy,161,255855103,0.2383,kept locally; not needed for numerical re-analysis
+generated figures in PDF,4,110359,0.0001,kept locally; not needed for numerical re-analysis
+images and overlays,16163,292224531,0.2722,kept locally; not needed for numerical re-analysis
+model checkpoints,66,38010313622,35.3999,kept locally; not needed for numerical re-analysis

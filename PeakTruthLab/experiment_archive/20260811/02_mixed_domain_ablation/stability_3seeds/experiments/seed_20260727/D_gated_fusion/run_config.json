@@ -1,0 +1,48 @@
+{
+  "mode": "pilot",
+  "fusion_mode": "gated_fusion",
+  "attribute_fusion_enabled": true,
+  "training_task": "joint",
+  "data_augmentation_enabled": false,
+  "test_manifest_used": false,
+  "pretrained_backbone": true,
+  "parameter_count": 48497988,
+  "trainable_parameter_count": 48497988,
+  "train": {
+    "samples": 10525,
+    "seed_positive": 7134,
+    "seed_negative": 3391,
+    "detection_empty": 3056,
+    "detection_single": 4357,
+    "detection_multi": 3112,
+    "detection_boxes": 12402
+  },
+  "validation": {
+    "samples": 2507,
+    "seed_positive": 1998,
+    "seed_negative": 509,
+    "detection_empty": 489,
+    "detection_single": 1315,
+    "detection_multi": 703,
+    "detection_boxes": 2989
+  },
+  "image_size": 480,
+  "batch_size": 8,
+  "physical_batch_size": 8,
+  "gradient_accumulation_steps": 1,
+  "effective_batch_size": 8,
+  "automatic_mixed_precision": true,
+  "accelerator_backend": "cuda",
+  "torch_version": "2.9.1+cu128",
+  "cuda_runtime": "12.8",
+  "hip_runtime": null,
+  "max_epochs": 15,
+  "minimum_overfit_epochs": 20,
+  "overfit_pass_criteria": {
+    "required_consecutive_epochs": 2,
+    "seed_accuracy": 0.95,
+    "detection_precision": 0.8,
+    "detection_recall": 0.8,
+    "matched_mean_iou": 0.65
+  }
+}

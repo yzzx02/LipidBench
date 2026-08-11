@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "started_at_unix": 1785837574.8377602,
+  "test_inference_started": true,
+  "training_completed_at_unix": 1785846075.3109567,
+  "ended_at_unix": 1785846392.4608488,
+  "elapsed_seconds": 8817.623088598251,
+  "summary": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\summary\\stability_summary.json",
+  "figure_png": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\paper_figure\\stability_comparison_3seeds_600dpi.png",
+  "figure_pdf": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\paper_figure\\stability_comparison_3seeds.pdf"
+}

@@ -1,0 +1,25 @@
+﻿experiment_id,condition,baseline,metric,point_difference,paired_bootstrap_ci95_low,paired_bootstrap_ci95_high,approximate_two_sided_bootstrap_p,bootstrap_replicates
+B_attr_only,Attributes only (Seed head),A_image_only,test_detection_precision,-0.03926360280391561,-0.05134496504247694,-0.026916651545628306,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_detection_recall,0.06721105527638183,0.05464792693679104,0.07915523425383209,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_detection_f1,0.01862242588039309,0.008494023676924778,0.027527662502395522,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_detection_mean_iou,0.00905957675307234,0.005663865118881004,0.012303197719645343,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_seed_balanced_accuracy,-0.012917991931007844,-0.024414297322257052,-0.0017124139427511689,0.022,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_seed_auroc,-0.005385998804593117,-0.00857662545768275,-0.0025389144180954287,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_seed_average_precision,-0.0011046395339289194,-0.001851526213319879,-0.0004543077054838336,0.0,1000
+B_attr_only,Attributes only (Seed head),A_image_only,test_seed_f1,-0.00831579937039828,-0.014731722765364741,-0.0020019699992610803,0.006,1000
+C_naive_concat,Naive concatenation,A_image_only,test_detection_precision,-0.02328409624719463,-0.03464930594358917,-0.013510134881132738,0.0,1000
+C_naive_concat,Naive concatenation,A_image_only,test_detection_recall,0.03580402010050243,0.024847549600199248,0.046521972682455615,0.0,1000
+C_naive_concat,Naive concatenation,A_image_only,test_detection_f1,0.009686321676513399,0.0005597241513569135,0.01772929618936841,0.038,1000
+C_naive_concat,Naive concatenation,A_image_only,test_detection_mean_iou,-0.0147493431009319,-0.01838158835003179,-0.0113024729156432,0.0,1000
+C_naive_concat,Naive concatenation,A_image_only,test_seed_balanced_accuracy,0.007686088460060692,-0.0005763565751312286,0.01700981452255487,0.07,1000
+C_naive_concat,Naive concatenation,A_image_only,test_seed_auroc,0.0013274879392048966,-5.445965266784868e-05,0.0028894756083749193,0.058,1000
+C_naive_concat,Naive concatenation,A_image_only,test_seed_average_precision,0.00030634481220681575,-1.57492254917041e-05,0.0007054807171930187,0.064,1000
+C_naive_concat,Naive concatenation,A_image_only,test_seed_f1,0.0038285605583927573,-0.0005093947492174705,0.007961454355051313,0.076,1000
+D_gated_fusion,Gated fusion,A_image_only,test_detection_precision,-0.03106415742420776,-0.04235094233367606,-0.020039205973190366,0.0,1000
+D_gated_fusion,Gated fusion,A_image_only,test_detection_recall,0.047424623115577824,0.036953451197746894,0.05843098671252603,0.0,1000
+D_gated_fusion,Gated fusion,A_image_only,test_detection_f1,0.012269356419074229,0.004034297367907481,0.020964352565687055,0.006,1000
+D_gated_fusion,Gated fusion,A_image_only,test_detection_mean_iou,-0.009472867400752816,-0.012503002882252524,-0.006364727855390867,0.0,1000
+D_gated_fusion,Gated fusion,A_image_only,test_seed_balanced_accuracy,-0.002783722196131988,-0.011532072758272973,0.0058099775530826995,0.47,1000
+D_gated_fusion,Gated fusion,A_image_only,test_seed_auroc,-0.0005850286043633801,-0.0021539125019610196,0.0008193199058369376,0.444,1000
+D_gated_fusion,Gated fusion,A_image_only,test_seed_average_precision,-0.00013959065204749432,-0.0005099997837750031,0.0001876589365732428,0.462,1000
+D_gated_fusion,Gated fusion,A_image_only,test_seed_f1,-0.0008044350894879093,-0.0050687391057549,0.002821800147868164,0.694,1000

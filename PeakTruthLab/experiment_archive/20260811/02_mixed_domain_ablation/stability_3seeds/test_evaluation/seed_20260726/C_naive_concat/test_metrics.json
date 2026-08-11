@@ -1,0 +1,227 @@
+{
+  "seed": 20260726,
+  "experiment_id": "C_naive_concat",
+  "fusion_mode": "naive_concat",
+  "selection": {
+    "seed": 20260726,
+    "experiment_id": "C_naive_concat",
+    "fusion_mode": "naive_concat",
+    "test_data_inspected_during_selection": false,
+    "detection": {
+      "checkpoint": {
+        "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260726\\C_naive_concat\\best_detection.pt",
+        "epoch": 14,
+        "fusion_mode": "naive_concat",
+        "training_task": "joint",
+        "validation_metrics_at_save": {
+          "samples": 2507,
+          "detection": {
+            "score_threshold": 0.5,
+            "iou_threshold": 0.5,
+            "true_positive": 2712,
+            "false_positive": 629,
+            "false_negative": 277,
+            "precision": 0.8117330140676444,
+            "recall": 0.9073268651722984,
+            "f1": 0.8568720379146919,
+            "matched_mean_iou": 0.8770438002801575,
+            "matched_median_iou": 0.9105202555656433,
+            "matched_coordinate_mae_px": 3.228312209644149,
+            "predictions_per_image": 1.3326685281212605
+          },
+          "seed": {
+            "true_positive": 1975,
+            "false_positive": 51,
+            "false_negative": 23,
+            "true_negative": 458,
+            "accuracy": 0.9704826485839649,
+            "precision": 0.9748272458045409,
+            "recall": 0.9884884884884885,
+            "f1": 0.981610337972167,
+            "specificity": 0.899803536345776,
+            "balanced_accuracy": 0.9441460124171323,
+            "auroc": 0.9896886080579606,
+            "average_precision": 0.9957870424012908,
+            "bce": 0.13824474811553955,
+            "brier": 0.02366442233324051,
+            "ece_10_bin": 0.020346505783637933
+          }
+        },
+        "inference_samples": 2507,
+        "inference_seconds": 22.13877119999961
+      },
+      "selection_metric": "Val detection F1 at IoU=0.50",
+      "threshold_grid": "0.05 to 0.95 in steps of 0.05",
+      "selected_score_threshold": 0.9
+    },
+    "seed_classification": {
+      "checkpoint": {
+        "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260726\\C_naive_concat\\best_seed.pt",
+        "epoch": 12,
+        "fusion_mode": "naive_concat",
+        "training_task": "joint",
+        "validation_metrics_at_save": {
+          "samples": 2507,
+          "detection": {
+            "score_threshold": 0.5,
+            "iou_threshold": 0.5,
+            "true_positive": 2768,
+            "false_positive": 1174,
+            "false_negative": 221,
+            "precision": 0.702181633688483,
+            "recall": 0.9260622281699565,
+            "f1": 0.7987303419419998,
+            "matched_mean_iou": 0.8657250630459344,
+            "matched_median_iou": 0.8965021967887878,
+            "matched_coordinate_mae_px": 3.392184070080002,
+            "predictions_per_image": 1.5723972875947347
+          },
+          "seed": {
+            "true_positive": 1954,
+            "false_positive": 24,
+            "false_negative": 44,
+            "true_negative": 485,
+            "accuracy": 0.9728759473474272,
+            "precision": 0.9878665318503539,
+            "recall": 0.977977977977978,
+            "f1": 0.9828973843058351,
+            "specificity": 0.9528487229862476,
+            "balanced_accuracy": 0.9654133504821127,
+            "auroc": 0.9889137664186782,
+            "average_precision": 0.9955748362748144,
+            "bce": 0.15503907203674316,
+            "brier": 0.023912673816084862,
+            "ece_10_bin": 0.022930622433684097
+          }
+        },
+        "inference_samples": 2507,
+        "inference_seconds": 22.308322999975644
+      },
+      "selection_metric": "Val Seed balanced accuracy",
+      "threshold_grid": "0.000 to 1.000 in steps of 0.001",
+      "selected_probability_threshold": 0.981
+    }
+  },
+  "test_was_used_only_after_val_selection": true,
+  "detection_checkpoint": {
+    "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260726\\C_naive_concat\\best_detection.pt",
+    "epoch": 14,
+    "fusion_mode": "naive_concat",
+    "training_task": "joint",
+    "validation_metrics_at_save": {
+      "samples": 2507,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 2712,
+        "false_positive": 629,
+        "false_negative": 277,
+        "precision": 0.8117330140676444,
+        "recall": 0.9073268651722984,
+        "f1": 0.8568720379146919,
+        "matched_mean_iou": 0.8770438002801575,
+        "matched_median_iou": 0.9105202555656433,
+        "matched_coordinate_mae_px": 3.228312209644149,
+        "predictions_per_image": 1.3326685281212605
+      },
+      "seed": {
+        "true_positive": 1975,
+        "false_positive": 51,
+        "false_negative": 23,
+        "true_negative": 458,
+        "accuracy": 0.9704826485839649,
+        "precision": 0.9748272458045409,
+        "recall": 0.9884884884884885,
+        "f1": 0.981610337972167,
+        "specificity": 0.899803536345776,
+        "balanced_accuracy": 0.9441460124171323,
+        "auroc": 0.9896886080579606,
+        "average_precision": 0.9957870424012908,
+        "bce": 0.13824474811553955,
+        "brier": 0.02366442233324051,
+        "ece_10_bin": 0.020346505783637933
+      }
+    },
+    "inference_samples": 2285,
+    "inference_seconds": 20.708651099994313
+  },
+  "seed_checkpoint": {
+    "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260726\\C_naive_concat\\best_seed.pt",
+    "epoch": 12,
+    "fusion_mode": "naive_concat",
+    "training_task": "joint",
+    "validation_metrics_at_save": {
+      "samples": 2507,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 2768,
+        "false_positive": 1174,
+        "false_negative": 221,
+        "precision": 0.702181633688483,
+        "recall": 0.9260622281699565,
+        "f1": 0.7987303419419998,
+        "matched_mean_iou": 0.8657250630459344,
+        "matched_median_iou": 0.8965021967887878,
+        "matched_coordinate_mae_px": 3.392184070080002,
+        "predictions_per_image": 1.5723972875947347
+      },
+      "seed": {
+        "true_positive": 1954,
+        "false_positive": 24,
+        "false_negative": 44,
+        "true_negative": 485,
+        "accuracy": 0.9728759473474272,
+        "precision": 0.9878665318503539,
+        "recall": 0.977977977977978,
+        "f1": 0.9828973843058351,
+        "specificity": 0.9528487229862476,
+        "balanced_accuracy": 0.9654133504821127,
+        "auroc": 0.9889137664186782,
+        "average_precision": 0.9955748362748144,
+        "bce": 0.15503907203674316,
+        "brier": 0.023912673816084862,
+        "ece_10_bin": 0.022930622433684097
+      }
+    },
+    "inference_samples": 2285,
+    "inference_seconds": 21.148795999994036
+  },
+  "test_detection": {
+    "score_threshold": 0.9,
+    "iou_threshold": 0.5,
+    "true_positive": 2595,
+    "false_positive": 295,
+    "false_negative": 589,
+    "precision": 0.8979238754325259,
+    "recall": 0.8150125628140703,
+    "f1": 0.8544616397760948,
+    "matched_mean_iou": 0.8798112702277814,
+    "matched_median_iou": 0.9117342829704285,
+    "left_boundary_mae_px": 3.492292155006717,
+    "right_boundary_mae_px": 5.554519506318491,
+    "width_mae_px": 7.910828332037365,
+    "center_mae_px": 3.456734438622388,
+    "box_coordinate_mae_px": 2.9287891156411585,
+    "exact_peak_count_accuracy": 0.7588621444201313,
+    "peak_count_mae": 0.300218818380744,
+    "predictions_per_image": 1.2647702407002188
+  },
+  "test_seed": {
+    "threshold": 0.981,
+    "true_positive": 1769,
+    "false_positive": 7,
+    "false_negative": 119,
+    "true_negative": 390,
+    "accuracy": 0.9448577680525164,
+    "precision": 0.9960585585585585,
+    "recall": 0.9369703389830508,
+    "specificity": 0.982367758186398,
+    "f1": 0.9656113537117904,
+    "balanced_accuracy": 0.9596690485847243,
+    "auroc": 0.9937694787174997,
+    "average_precision": 0.9983651458898444,
+    "bce": 0.12204463877478518,
+    "brier": 0.024099957359882858
+  }
+}

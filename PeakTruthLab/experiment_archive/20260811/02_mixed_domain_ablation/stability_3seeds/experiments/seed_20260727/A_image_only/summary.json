@@ -1,0 +1,116 @@
+{
+  "status": "ok",
+  "mode": "pilot",
+  "fusion_mode": "image_only",
+  "attribute_fusion_enabled": false,
+  "training_task": "joint",
+  "data_augmentation_enabled": false,
+  "test_manifest_used": false,
+  "pretrained_backbone": true,
+  "parameter_count": 48333636,
+  "trainable_parameter_count": 48333636,
+  "device": {
+    "type": "cuda",
+    "backend": "cuda",
+    "torch": "2.9.1+cu128",
+    "cuda": "12.8",
+    "hip": null,
+    "name": "NVIDIA GeForce RTX 4070 SUPER",
+    "max_memory_allocated_bytes": 3582898688,
+    "max_memory_reserved_bytes": 3906994176
+  },
+  "data": {
+    "train_manifest": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2\\manifests\\train.jsonl",
+    "val_manifest": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2\\manifests\\val.jsonl",
+    "train": {
+      "samples": 10525,
+      "seed_positive": 7134,
+      "seed_negative": 3391,
+      "detection_empty": 3056,
+      "detection_single": 4357,
+      "detection_multi": 3112,
+      "detection_boxes": 12402
+    },
+    "validation": {
+      "samples": 2507,
+      "seed_positive": 1998,
+      "seed_negative": 509,
+      "detection_empty": 489,
+      "detection_single": 1315,
+      "detection_multi": 703,
+      "detection_boxes": 2989
+    }
+  },
+  "epochs_completed": 15,
+  "elapsed_seconds": 3583.9065040000132,
+  "best_detection_epoch": 12,
+  "best_detection_f1": 0.8683147519793182,
+  "best_seed_epoch": 11,
+  "best_seed_balanced_accuracy": 0.9667019671931263,
+  "overfit_check": {
+    "required": false,
+    "passed": false,
+    "passed_epoch": null,
+    "final_pass_streak": 0,
+    "criteria": {
+      "required_consecutive_epochs": 2,
+      "seed_accuracy": 0.95,
+      "detection_precision": 0.8,
+      "detection_recall": 0.8,
+      "matched_mean_iou": 0.65
+    }
+  },
+  "final": {
+    "epoch": 15,
+    "train_losses": {
+      "loss_box_reg": 0.06116363947601043,
+      "loss_classifier": 0.052533224817382394,
+      "loss_objectness": 0.0011237223516702137,
+      "loss_rpn_box_reg": 0.0015539067799651746,
+      "loss_seed_cls": 0.008675898561934113,
+      "loss_total": 0.12505039177894434
+    },
+    "validation": {
+      "samples": 2507,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 2696,
+        "false_positive": 697,
+        "false_negative": 293,
+        "precision": 0.7945770704391394,
+        "recall": 0.9019739043158247,
+        "f1": 0.8448762143528674,
+        "matched_mean_iou": 0.8741796802651989,
+        "matched_median_iou": 0.909548282623291,
+        "matched_coordinate_mae_px": 3.184761990425495,
+        "predictions_per_image": 1.3534104507379339
+      },
+      "seed": {
+        "true_positive": 1961,
+        "false_positive": 33,
+        "false_negative": 37,
+        "true_negative": 476,
+        "accuracy": 0.9720781810929398,
+        "precision": 0.9834503510531595,
+        "recall": 0.9814814814814815,
+        "f1": 0.9824649298597194,
+        "specificity": 0.9351669941060904,
+        "balanced_accuracy": 0.958324237793786,
+        "auroc": 0.9869840370822703,
+        "average_precision": 0.9940828657138355,
+        "bce": 0.15965697169303894,
+        "brier": 0.023993926122784615,
+        "ece_10_bin": 0.022116080241513292
+      }
+    },
+    "elapsed_seconds": 237.00581259999308
+  },
+  "outputs": {
+    "best_detection": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260727\\A_image_only\\best_detection.pt",
+    "best_seed": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260727\\A_image_only\\best_seed.pt",
+    "last": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260727\\A_image_only\\last.pt",
+    "history": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260727\\A_image_only\\history.json",
+    "overlays": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\experiments\\seed_20260727\\A_image_only\\overlays"
+  }
+}

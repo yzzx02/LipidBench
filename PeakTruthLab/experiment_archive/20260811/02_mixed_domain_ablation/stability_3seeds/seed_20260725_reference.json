@@ -1,0 +1,24 @@
+{
+  "seed": 20260725,
+  "status": "existing_result_reused",
+  "base_result_root": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725",
+  "training_epoch_cap": 15,
+  "test_evaluation_status": "pending; the epoch-15 checkpoints must undergo the same fresh Val threshold-selection workflow before final Test evaluation",
+  "experiments": {
+    "A_image_only": {
+      "summary": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\A_image_only_seed_20260725\\summary.json",
+      "best_detection": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\A_image_only_seed_20260725\\best_detection.pt",
+      "best_seed": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\A_image_only_seed_20260725\\best_seed.pt"
+    },
+    "B_attr_only": {
+      "summary": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\B_attr_only_seed_20260725\\summary.json",
+      "best_detection": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\B_attr_only_seed_20260725\\best_detection.pt",
+      "best_seed": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\B_attr_only_seed_20260725\\best_seed.pt"
+    },
+    "C_naive_concat": {
+      "summary": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\C_naive_concat_seed_20260725\\summary.json",
+      "best_detection": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\C_naive_concat_seed_20260725\\best_detection.pt",
+      "best_seed": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\epoch15_probe\\C_naive_concat_seed_20260725\\best_seed.pt"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "status": "completed",
+  "selection_lock": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\thresholds\\selection_before_external.json",
+  "domains": [
+    "External A",
+    "External B",
+    "External C"
+  ],
+  "macro_average": {
+    "condition": "External macro average",
+    "samples": 5234,
+    "detection_precision": 0.8281114107997377,
+    "detection_recall": 0.8286276332933142,
+    "detection_f1": 0.82808729119348,
+    "detection_mean_iou": 0.8608408759555398,
+    "detection_median_iou": 0.885424385468165,
+    "detection_ap50": 0.8371410240949051,
+    "detection_ap75": 0.6781024496820754,
+    "detection_map_50_95": 0.5954778516149211,
+    "seed_balanced_accuracy": 0.9198396852945643,
+    "seed_auroc": 0.9742596682665613,
+    "seed_auprc": 0.9728007275696643,
+    "seed_f1": 0.9304709485016311,
+    "seed_precision": 0.9519032143279128,
+    "seed_recall": 0.9115130630475899,
+    "seed_specificity": 0.9281663075415386,
+    "seed_brier": 0.06344393616207662
+  },
+  "external_used_only_after_val_selection": true
+}

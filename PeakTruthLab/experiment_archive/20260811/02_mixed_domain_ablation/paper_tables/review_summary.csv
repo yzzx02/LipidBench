@@ -1,0 +1,10 @@
+﻿metric,value
+Reviewed samples,150
+Manually changed samples,66
+Unchanged after review,84
+Added true-peak boxes,52
+Removed true-peak boxes,23
+Net true-peak box change,29
+Seed-label changes,29
+Seed 0->1,21
+Seed 1->0,8

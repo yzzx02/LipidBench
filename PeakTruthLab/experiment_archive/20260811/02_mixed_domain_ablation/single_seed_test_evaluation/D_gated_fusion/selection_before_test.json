@@ -1,0 +1,97 @@
+{
+  "experiment_id": "D_gated_fusion",
+  "fusion_mode": "gated_fusion",
+  "test_data_inspected_during_selection": false,
+  "detection": {
+    "checkpoint": {
+      "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\experiments\\D_gated_fusion\\best_detection.pt",
+      "epoch": 3,
+      "fusion_mode": "gated_fusion",
+      "training_task": "joint",
+      "validation_metrics_at_save": {
+        "samples": 2507,
+        "detection": {
+          "score_threshold": 0.5,
+          "iou_threshold": 0.5,
+          "true_positive": 2659,
+          "false_positive": 645,
+          "false_negative": 330,
+          "precision": 0.8047820823244553,
+          "recall": 0.8895951823352292,
+          "f1": 0.845065946289528,
+          "matched_mean_iou": 0.8590688089895804,
+          "matched_median_iou": 0.8890804648399353,
+          "matched_coordinate_mae_px": 3.7850811371188184,
+          "predictions_per_image": 1.3179098524132429
+        },
+        "seed": {
+          "true_positive": 1938,
+          "false_positive": 24,
+          "false_negative": 60,
+          "true_negative": 485,
+          "accuracy": 0.9664938173115277,
+          "precision": 0.9877675840978594,
+          "recall": 0.96996996996997,
+          "f1": 0.9787878787878788,
+          "specificity": 0.9528487229862476,
+          "balanced_accuracy": 0.9614093464781088,
+          "auroc": 0.9918263056769927,
+          "average_precision": 0.9974016332547455,
+          "bce": 0.09642452001571655,
+          "brier": 0.025586025789380074,
+          "ece_10_bin": 0.019633854415058178
+        }
+      },
+      "inference_samples": 2507,
+      "inference_seconds": 23.388219899999967
+    },
+    "selection_metric": "Val detection F1 at IoU=0.50",
+    "selected_score_threshold": 0.65
+  },
+  "seed": {
+    "checkpoint": {
+      "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\experiments\\D_gated_fusion\\best_seed.pt",
+      "epoch": 5,
+      "fusion_mode": "gated_fusion",
+      "training_task": "joint",
+      "validation_metrics_at_save": {
+        "samples": 2507,
+        "detection": {
+          "score_threshold": 0.5,
+          "iou_threshold": 0.5,
+          "true_positive": 2558,
+          "false_positive": 535,
+          "false_negative": 431,
+          "precision": 0.827028774652441,
+          "recall": 0.8558046169287387,
+          "f1": 0.8411706675435712,
+          "matched_mean_iou": 0.8607472477013287,
+          "matched_median_iou": 0.8919747471809387,
+          "matched_coordinate_mae_px": 3.8469982672893415,
+          "predictions_per_image": 1.2337455125648185
+        },
+        "seed": {
+          "true_positive": 1914,
+          "false_positive": 11,
+          "false_negative": 84,
+          "true_negative": 498,
+          "accuracy": 0.9621061029118468,
+          "precision": 0.9942857142857143,
+          "recall": 0.9579579579579579,
+          "f1": 0.9757838388988019,
+          "specificity": 0.9783889980353635,
+          "balanced_accuracy": 0.9681734779966606,
+          "auroc": 0.9938794393607766,
+          "average_precision": 0.998277411548814,
+          "bce": 0.10246721655130386,
+          "brier": 0.02767001837491989,
+          "ece_10_bin": 0.03385902913290994
+        }
+      },
+      "inference_samples": 2507,
+      "inference_seconds": 23.44863809999515
+    },
+    "selection_metric": "Val Seed balanced accuracy",
+    "selected_probability_threshold": 0.356
+  }
+}

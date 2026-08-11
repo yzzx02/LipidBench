@@ -1,0 +1,116 @@
+{
+  "status": "ok",
+  "mode": "pilot",
+  "fusion_mode": "naive_concat",
+  "attribute_fusion_enabled": true,
+  "training_task": "joint",
+  "data_augmentation_enabled": false,
+  "test_manifest_used": false,
+  "pretrained_backbone": true,
+  "parameter_count": 48350020,
+  "trainable_parameter_count": 48350020,
+  "device": {
+    "type": "cuda",
+    "backend": "cuda",
+    "torch": "2.9.1+cu128",
+    "cuda": "12.8",
+    "hip": null,
+    "name": "NVIDIA GeForce RTX 4070 SUPER",
+    "max_memory_allocated_bytes": 3576842752,
+    "max_memory_reserved_bytes": 3726639104
+  },
+  "data": {
+    "train_manifest": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\splits\\train.jsonl",
+    "val_manifest": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\splits\\val.jsonl",
+    "train": {
+      "samples": 7274,
+      "seed_positive": 5455,
+      "seed_negative": 1819,
+      "detection_empty": 1562,
+      "detection_single": 3254,
+      "detection_multi": 2458,
+      "detection_boxes": 9481
+    },
+    "validation": {
+      "samples": 1540,
+      "seed_positive": 1124,
+      "seed_negative": 416,
+      "detection_empty": 379,
+      "detection_single": 699,
+      "detection_multi": 462,
+      "detection_boxes": 1985
+    }
+  },
+  "epochs_completed": 15,
+  "elapsed_seconds": 2918.6632709000005,
+  "best_detection_epoch": 9,
+  "best_detection_f1": 0.8865107018417123,
+  "best_seed_epoch": 15,
+  "best_seed_balanced_accuracy": 0.9462428141253765,
+  "overfit_check": {
+    "required": false,
+    "passed": false,
+    "passed_epoch": null,
+    "final_pass_streak": 0,
+    "criteria": {
+      "required_consecutive_epochs": 2,
+      "seed_accuracy": 0.95,
+      "detection_precision": 0.8,
+      "detection_recall": 0.8,
+      "matched_mean_iou": 0.65
+    }
+  },
+  "final": {
+    "epoch": 15,
+    "train_losses": {
+      "loss_box_reg": 0.06769760363827368,
+      "loss_classifier": 0.05625559206908712,
+      "loss_objectness": 0.0005136356262691511,
+      "loss_rpn_box_reg": 0.0012815281873262503,
+      "loss_seed_cls": 0.0012911340460739747,
+      "loss_total": 0.1270394938332694
+    },
+    "validation": {
+      "samples": 1540,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 1742,
+        "false_positive": 218,
+        "false_negative": 243,
+        "precision": 0.8887755102040816,
+        "recall": 0.8775818639798488,
+        "f1": 0.8831432192648923,
+        "matched_mean_iou": 0.864087121221146,
+        "matched_median_iou": 0.8932064771652222,
+        "matched_coordinate_mae_px": 2.6723725847754496,
+        "predictions_per_image": 1.2727272727272727
+      },
+      "seed": {
+        "true_positive": 1068,
+        "false_positive": 24,
+        "false_negative": 56,
+        "true_negative": 392,
+        "accuracy": 0.948051948051948,
+        "precision": 0.978021978021978,
+        "recall": 0.9501779359430605,
+        "f1": 0.9638989169675091,
+        "specificity": 0.9423076923076923,
+        "balanced_accuracy": 0.9462428141253765,
+        "auroc": 0.981789368327402,
+        "average_precision": 0.989358986813508,
+        "bce": 0.37161383032798767,
+        "brier": 0.04855780676007271,
+        "ece_10_bin": 0.046029029457600096
+      }
+    },
+    "elapsed_seconds": 238.34988750000048
+  },
+  "outputs": {
+    "best_detection": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\checkpoints\\best_detection.pt",
+    "best_seed": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\checkpoints\\best_seed.pt",
+    "last": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\checkpoints\\last.pt",
+    "history": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\checkpoints\\history.json",
+    "overlays": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\domain_generalization\\seed_1\\checkpoints\\overlays"
+  }
+}

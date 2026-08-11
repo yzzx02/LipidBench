@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "experiments": [
+    "A_image_only",
+    "B_attr_only",
+    "C_naive_concat",
+    "D_gated_fusion"
+  ],
+  "test_manifest": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2\\manifests\\test.jsonl",
+  "selection_policy": "All checkpoints and thresholds selected on Val before Test inference; Test used only for final reporting."
+}

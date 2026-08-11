@@ -1,0 +1,43 @@
+{
+  "status": "frozen",
+  "confirmed_date": "2026-08-11",
+  "stage": "cross_domain_generalization_seed_1",
+  "model": "Naive concat",
+  "fusion_mode": "naive_concat",
+  "random_seed": 20260725,
+  "epochs": 15,
+  "batch_size": 8,
+  "image_size": 480,
+  "amp_fp16": true,
+  "optimizer": "AdamW",
+  "learning_rate": 0.0001,
+  "weight_decay": 0.0001,
+  "data_augmentation": false,
+  "validation_each_epoch": true,
+  "rpn_train_proposals": 128,
+  "rpn_test_proposals": 64,
+  "box_nms_threshold": 0.6,
+  "checkpoint_selection": {
+    "detection": "highest Val Detection F1 at score threshold 0.5 and IoU 0.5",
+    "seed": "highest Val Seed balanced accuracy at probability threshold 0.5"
+  },
+  "post_training_threshold_selection": {
+    "detection": "Val F1 sweep from 0.00 to 1.00 in steps of 0.05",
+    "seed": "Val balanced-accuracy sweep from 0.000 to 1.000 in steps of 0.001"
+  },
+  "external_domains": {
+    "External A": "ST003127",
+    "External B": "ST003941",
+    "External C": "ST003514"
+  },
+  "split_sha256": {
+    "train.jsonl": "94FA93CB4B86D034DB9FB8C8462D737F23A5C3EB4CCA1C700AEB606776A8AEC5",
+    "val.jsonl": "3F4255DEBEA2D68E350A612EC27AB1F1423ADCCFF90E469508F88C25AD29ECB3",
+    "external_A.jsonl": "2258676AA7233A679DA465AFA58EADF5B0C25D0C2E198C0560C7E3A8F1BC78F2",
+    "external_B.jsonl": "CC8AC7A7BE3D6183F10BE66BED3B1B8CFEC248A057B8F369DC7847E964AAF583",
+    "external_C.jsonl": "648B8A18D5F6DC590086FF0E0C57A14242115E321E113C2ECFAB89A483A765DE"
+  },
+  "config_sha256": "F4ADF882BB183D78192EF3428466864298B59E03E0FF134E19FD1ED699983A4C",
+  "training_code_sha256": "440CEB0B334A7682FF61D5249137542F7BCF45F96A238FA5AFD1F115666CA0B6",
+  "policy": "Train alone fits attribute preprocessing. Val alone selects checkpoints and thresholds. External A/B/C remain unread until selection_before_external.json has been written. Metrics are reported per domain and by unweighted macro average; pooled-only reporting is prohibited. Existing mixed-domain Test never enters Train or Val."
+}
