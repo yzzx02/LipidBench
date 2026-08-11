@@ -1,0 +1,11 @@
+{
+  "status": "completed",
+  "seeds": [
+    20260725,
+    20260726,
+    20260727
+  ],
+  "experiment": "D_gated_fusion",
+  "training_status": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\gated_training_status.json",
+  "test_evaluation_started": false
+}

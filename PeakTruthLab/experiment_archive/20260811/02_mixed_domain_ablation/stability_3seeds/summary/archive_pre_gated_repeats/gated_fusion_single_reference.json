@@ -1,0 +1,12 @@
+{
+  "random_seed": 20260725,
+  "experiment_id": "D_gated_fusion",
+  "condition": "Gated fusion",
+  "repeat_status": "single_existing_run_not_repeated",
+  "best_detection_epoch": 3,
+  "best_seed_epoch": 5,
+  "detection_f1": 0.8432100758921363,
+  "detection_mean_iou": 0.852815597895597,
+  "seed_balanced_accuracy": 0.9602574125859198,
+  "seed_auroc": 0.9942017461469493
+}

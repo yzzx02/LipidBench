@@ -1,0 +1,15 @@
+{
+  "status": "completed",
+  "new_seeds": [
+    20260726,
+    20260727
+  ],
+  "experiments_per_seed": [
+    "A_image_only",
+    "B_attr_only",
+    "C_naive_concat"
+  ],
+  "new_run_count": 6,
+  "test_evaluation_started": false,
+  "training_status": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\stability_3seeds_20260729\\training_status.json"
+}

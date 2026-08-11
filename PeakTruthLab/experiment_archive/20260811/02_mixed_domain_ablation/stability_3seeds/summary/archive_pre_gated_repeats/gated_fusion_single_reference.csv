@@ -1,0 +1,2 @@
+﻿random_seed,experiment_id,condition,repeat_status,best_detection_epoch,best_seed_epoch,detection_f1,detection_mean_iou,seed_balanced_accuracy,seed_auroc
+20260725,D_gated_fusion,Gated fusion,single_existing_run_not_repeated,3,5,0.8432100758921363,0.852815597895597,0.9602574125859198,0.9942017461469493

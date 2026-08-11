@@ -1,0 +1,39 @@
+{
+  "train_val_source_overlap": 0,
+  "train_seen_source_overlap": 0,
+  "val_seen_source_overlap": 0,
+  "development_external_A_source_overlap": 0,
+  "development_external_A_study_overlap": 0,
+  "development_external_B_source_overlap": 0,
+  "development_external_B_study_overlap": 0,
+  "development_external_C_source_overlap": 0,
+  "development_external_C_study_overlap": 0,
+  "seen_development_study_overlap": 2,
+  "seed_checks": {
+    "20260725": {
+      "scaler_fit_on_train_only": true,
+      "external_used_for_threshold_selection": false,
+      "seen_test_used_for_threshold_selection": false,
+      "test_manifest_used_during_training": false,
+      "epochs_completed": 15,
+      "fusion_mode": "naive_concat"
+    },
+    "20260726": {
+      "scaler_fit_on_train_only": true,
+      "external_used_for_threshold_selection": false,
+      "seen_test_used_for_threshold_selection": false,
+      "test_manifest_used_during_training": false,
+      "epochs_completed": 15,
+      "fusion_mode": "naive_concat"
+    },
+    "20260727": {
+      "scaler_fit_on_train_only": true,
+      "external_used_for_threshold_selection": false,
+      "seen_test_used_for_threshold_selection": false,
+      "test_manifest_used_during_training": false,
+      "epochs_completed": 15,
+      "fusion_mode": "naive_concat"
+    }
+  },
+  "overall_pass": true
+}

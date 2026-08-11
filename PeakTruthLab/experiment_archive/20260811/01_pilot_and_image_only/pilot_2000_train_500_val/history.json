@@ -1,0 +1,207 @@
+[
+  {
+    "epoch": 1,
+    "train_losses": {
+      "loss_box_reg": 0.08944532940723002,
+      "loss_classifier": 0.09812683138996363,
+      "loss_objectness": 0.03883616878092289,
+      "loss_rpn_box_reg": 0.006568590139155276,
+      "loss_seed_cls": 0.19640463263494895,
+      "loss_total": 0.42938155299425124
+    },
+    "validation": {
+      "samples": 500,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 438,
+        "false_positive": 476,
+        "false_negative": 134,
+        "precision": 0.47921225382932164,
+        "recall": 0.7657342657342657,
+        "f1": 0.5895020188425303,
+        "matched_mean_iou": 0.7354624764015686,
+        "matched_median_iou": 0.739345908164978,
+        "matched_coordinate_mae_px": 7.3993299475543575,
+        "predictions_per_image": 1.828
+      },
+      "seed": {
+        "true_positive": 387,
+        "false_positive": 15,
+        "false_negative": 7,
+        "true_negative": 91,
+        "accuracy": 0.956,
+        "precision": 0.9626865671641791,
+        "recall": 0.9822335025380711,
+        "specificity": 0.8584905660377359,
+        "balanced_accuracy": 0.9203620342879035,
+        "bce": 0.11909729242324829
+      }
+    },
+    "elapsed_seconds": 62.52559069998097
+  },
+  {
+    "epoch": 2,
+    "train_losses": {
+      "loss_box_reg": 0.1234060636907816,
+      "loss_classifier": 0.10789491061866284,
+      "loss_objectness": 0.008594028068706393,
+      "loss_rpn_box_reg": 0.004887456049676985,
+      "loss_seed_cls": 0.11988378153374651,
+      "loss_total": 0.36466624134778974
+    },
+    "validation": {
+      "samples": 500,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 479,
+        "false_positive": 249,
+        "false_negative": 93,
+        "precision": 0.657967032967033,
+        "recall": 0.8374125874125874,
+        "f1": 0.7369230769230769,
+        "matched_mean_iou": 0.7863402024440327,
+        "matched_median_iou": 0.8004186749458313,
+        "matched_coordinate_mae_px": 6.270003456163506,
+        "predictions_per_image": 1.456
+      },
+      "seed": {
+        "true_positive": 387,
+        "false_positive": 23,
+        "false_negative": 7,
+        "true_negative": 83,
+        "accuracy": 0.94,
+        "precision": 0.9439024390243902,
+        "recall": 0.9822335025380711,
+        "specificity": 0.7830188679245284,
+        "balanced_accuracy": 0.8826261852312998,
+        "bce": 0.11898553371429443
+      }
+    },
+    "elapsed_seconds": 51.717889800085686
+  },
+  {
+    "epoch": 3,
+    "train_losses": {
+      "loss_box_reg": 0.13031385847926139,
+      "loss_classifier": 0.1164906814545393,
+      "loss_objectness": 0.006377448435407132,
+      "loss_rpn_box_reg": 0.004308728302828967,
+      "loss_seed_cls": 0.09195324279507622,
+      "loss_total": 0.34944396030902863
+    },
+    "validation": {
+      "samples": 500,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 502,
+        "false_positive": 239,
+        "false_negative": 70,
+        "precision": 0.6774628879892037,
+        "recall": 0.8776223776223776,
+        "f1": 0.7646610814927647,
+        "matched_mean_iou": 0.7962439435411734,
+        "matched_median_iou": 0.8150498867034912,
+        "matched_coordinate_mae_px": 6.470056558510222,
+        "predictions_per_image": 1.482
+      },
+      "seed": {
+        "true_positive": 386,
+        "false_positive": 15,
+        "false_negative": 8,
+        "true_negative": 91,
+        "accuracy": 0.954,
+        "precision": 0.9625935162094763,
+        "recall": 0.9796954314720813,
+        "specificity": 0.8584905660377359,
+        "balanced_accuracy": 0.9190929987549086,
+        "bce": 0.16016747057437897
+      }
+    },
+    "elapsed_seconds": 51.34892689995468
+  },
+  {
+    "epoch": 4,
+    "train_losses": {
+      "loss_box_reg": 0.12575270359963178,
+      "loss_classifier": 0.11535119900852442,
+      "loss_objectness": 0.0049007020721910525,
+      "loss_rpn_box_reg": 0.003860948082176037,
+      "loss_seed_cls": 0.06414520694417297,
+      "loss_total": 0.31401076045632365
+    },
+    "validation": {
+      "samples": 500,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 504,
+        "false_positive": 272,
+        "false_negative": 68,
+        "precision": 0.6494845360824743,
+        "recall": 0.8811188811188811,
+        "f1": 0.7477744807121661,
+        "matched_mean_iou": 0.8209663717046617,
+        "matched_median_iou": 0.8456735014915466,
+        "matched_coordinate_mae_px": 4.969564356501141,
+        "predictions_per_image": 1.552
+      },
+      "seed": {
+        "true_positive": 384,
+        "false_positive": 5,
+        "false_negative": 10,
+        "true_negative": 101,
+        "accuracy": 0.97,
+        "precision": 0.987146529562982,
+        "recall": 0.9746192893401016,
+        "specificity": 0.9528301886792453,
+        "balanced_accuracy": 0.9637247390096735,
+        "bce": 0.10780758410692215
+      }
+    },
+    "elapsed_seconds": 51.36459580005612
+  },
+  {
+    "epoch": 5,
+    "train_losses": {
+      "loss_box_reg": 0.12325892327725887,
+      "loss_classifier": 0.1134107382595539,
+      "loss_objectness": 0.0042743650327902285,
+      "loss_rpn_box_reg": 0.0034984814720228313,
+      "loss_seed_cls": 0.04961274285774562,
+      "loss_total": 0.29405525118112563
+    },
+    "validation": {
+      "samples": 500,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 511,
+        "false_positive": 219,
+        "false_negative": 61,
+        "precision": 0.7,
+        "recall": 0.8933566433566433,
+        "f1": 0.7849462365591398,
+        "matched_mean_iou": 0.825848202999324,
+        "matched_median_iou": 0.8589893579483032,
+        "matched_coordinate_mae_px": 4.81720008588817,
+        "predictions_per_image": 1.46
+      },
+      "seed": {
+        "true_positive": 386,
+        "false_positive": 17,
+        "false_negative": 8,
+        "true_negative": 89,
+        "accuracy": 0.95,
+        "precision": 0.9578163771712159,
+        "recall": 0.9796954314720813,
+        "specificity": 0.839622641509434,
+        "balanced_accuracy": 0.9096590364907576,
+        "bce": 0.19009073078632355
+      }
+    },
+    "elapsed_seconds": 51.24915409996174
+  }
+]

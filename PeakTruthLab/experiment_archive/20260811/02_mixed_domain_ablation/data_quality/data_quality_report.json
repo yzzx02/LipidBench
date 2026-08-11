@@ -1,0 +1,177 @@
+{
+  "dataset_info": {
+    "package": "PeakTruthLab-dataset-v2",
+    "format_version": 2,
+    "created": "2026-07-25",
+    "image_path_base": "eic_images_flat",
+    "splits": {
+      "train": 10525,
+      "val": 2507,
+      "test": 2285
+    },
+    "unique_samples": 15317,
+    "unique_images": 15317,
+    "test_set_included": true,
+    "test_set_used_for_training_or_model_selection": false,
+    "parent_dataset": "D:\\CODE\\datasets\\PeakTruthLab-dataset-v1",
+    "review_corrections": {
+      "reviewed_samples": 150,
+      "manually_changed_samples": 66,
+      "unchanged_after_review": 84,
+      "seed_label_changes": 29,
+      "seed_0_to_1": 21,
+      "seed_1_to_0": 8,
+      "net_true_peak_delta": 29,
+      "added_peak_boxes": 52,
+      "removed_peak_boxes": 23,
+      "change_type_counts": {
+        "减少峰数量并/或调整边界": 12,
+        "删除全部真峰": 7,
+        "增加峰数量并/或调整边界": 7,
+        "新增真峰": 22,
+        "调整边界": 18
+      }
+    },
+    "seed_label_rule": {
+      "new_match_iou_threshold": 0.05,
+      "old_positive_target_preservation_iou_threshold": 0.3,
+      "applied_only_to_manually_changed_review_samples": true
+    },
+    "attribute_policy": {
+      "dimension": 13,
+      "names": [
+        "SNR",
+        "CV",
+        "GS",
+        "TPAS",
+        "H2B",
+        "ZZ",
+        "DZZ",
+        "PCC",
+        "SKEW",
+        "DENT",
+        "DM",
+        "ENT",
+        "JAG"
+      ],
+      "recomputed": false,
+      "reason": "The 13 attributes are defined on the unchanged original Seed candidate, whereas review edits affect True_Peak boxes only."
+    },
+    "validation": {
+      "unique_samples": 15317,
+      "missing_images": 0,
+      "source_file_leakage": false,
+      "source_overlap": {
+        "train_val": [],
+        "train_test": [],
+        "val_test": []
+      }
+    }
+  },
+  "split_summary": [
+    {
+      "split": "train",
+      "images": 10525,
+      "true_peaks": 12402,
+      "mean_peaks_per_image": 1.1783372921615203,
+      "median_peaks_per_image": 1,
+      "max_peaks_per_image": 9,
+      "empty_images": 3056,
+      "empty_image_fraction": 0.2903562945368171,
+      "single_peak_images": 4357,
+      "single_peak_fraction": 0.4139667458432304,
+      "multi_peak_images": 3112,
+      "multi_peak_fraction": 0.2956769596199525,
+      "seed_positive": 7134,
+      "seed_positive_fraction": 0.6778147268408551,
+      "seed_negative": 3391,
+      "unique_sources": 20
+    },
+    {
+      "split": "val",
+      "images": 2507,
+      "true_peaks": 2989,
+      "mean_peaks_per_image": 1.1922616673314719,
+      "median_peaks_per_image": 1,
+      "max_peaks_per_image": 7,
+      "empty_images": 489,
+      "empty_image_fraction": 0.1950538492221779,
+      "single_peak_images": 1315,
+      "single_peak_fraction": 0.5245313123254887,
+      "multi_peak_images": 703,
+      "multi_peak_fraction": 0.28041483845233345,
+      "seed_positive": 1998,
+      "seed_positive_fraction": 0.7969684882329477,
+      "seed_negative": 509,
+      "unique_sources": 5
+    },
+    {
+      "split": "test",
+      "images": 2285,
+      "true_peaks": 3184,
+      "mean_peaks_per_image": 1.3934354485776805,
+      "median_peaks_per_image": 1,
+      "max_peaks_per_image": 7,
+      "empty_images": 375,
+      "empty_image_fraction": 0.16411378555798686,
+      "single_peak_images": 1106,
+      "single_peak_fraction": 0.4840262582056893,
+      "multi_peak_images": 804,
+      "multi_peak_fraction": 0.3518599562363239,
+      "seed_positive": 1888,
+      "seed_positive_fraction": 0.8262582056892779,
+      "seed_negative": 397,
+      "unique_sources": 4
+    },
+    {
+      "split": "all",
+      "images": 15317,
+      "true_peaks": 18575,
+      "mean_peaks_per_image": 1.2127048377619638,
+      "median_peaks_per_image": 1,
+      "max_peaks_per_image": 9,
+      "empty_images": 3920,
+      "empty_image_fraction": 0.25592478944963115,
+      "single_peak_images": 6778,
+      "single_peak_fraction": 0.44251485277795916,
+      "multi_peak_images": 4619,
+      "multi_peak_fraction": 0.30156035777240975,
+      "seed_positive": 11020,
+      "seed_positive_fraction": 0.7194620356466671,
+      "seed_negative": 4297,
+      "unique_sources": 29
+    }
+  ],
+  "correction_summary": {
+    "reviewed_samples": 150,
+    "manually_changed_samples": 66,
+    "unchanged_after_review": 84,
+    "seed_label_changes": 29,
+    "seed_0_to_1": 21,
+    "seed_1_to_0": 8,
+    "net_true_peak_delta": 29,
+    "added_peak_boxes": 52,
+    "removed_peak_boxes": 23,
+    "change_type_counts": {
+      "减少峰数量并/或调整边界": 12,
+      "删除全部真峰": 7,
+      "增加峰数量并/或调整边界": 7,
+      "新增真峰": 22,
+      "调整边界": 18
+    }
+  },
+  "manifest_sha256": {
+    "train": "8163d3d4f57c322aaa6cf2dc7f45c495a52b84d654bf4354d6adbe29309036a7",
+    "val": "e3b461cb74d4a2743d74c94771133f3d7b29e8b50d54e016be18c02bc933c76c",
+    "test": "16c2c80106c688ef1e35e493fea06129ebd168cbfd28ca6ea293ef577d4b5a75"
+  },
+  "elapsed_seconds_before_archive": 8.710157199995592,
+  "dataset_archive": {
+    "path": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2.zip",
+    "members": 15776,
+    "bytes": 235291592,
+    "sha256": "070a1da29179f9b57b9a155d6ef88f29ac21c2287c3b72286c5a0eb12fdb2de2",
+    "checksum_path": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2.zip.sha256",
+    "crc_verified": true
+  }
+}

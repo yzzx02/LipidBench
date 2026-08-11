@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "started_at_unix": 1785846077.3569362,
+  "training_completion_verified": true,
+  "test_used_for_hyperparameter_tuning": false,
+  "ended_at_unix": 1785846388.9790857,
+  "elapsed_seconds": 311.62214946746826,
+  "runs_aggregated": 12
+}

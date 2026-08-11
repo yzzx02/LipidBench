@@ -1,0 +1,5 @@
+{
+  "status": "completed",
+  "runs": 12,
+  "policy": "All Gated fusion training runs completed before any Gated Test inference. All checkpoints and thresholds were selected on Val. Existing metrics for the other three models were reused without retuning. Test was used only for final reporting."
+}

@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "fit_partition": "train",
+  "fitted_samples": 10525,
+  "imputation": "per_attribute_train_median",
+  "scaling": "per_attribute_train_mean_population_std_after_imputation",
+  "preserve_missing_mask": true,
+  "attribute_order": [
+    "SNR",
+    "CV",
+    "GS",
+    "TPAS",
+    "H2B",
+    "ZZ",
+    "DZZ",
+    "PCC",
+    "SKEW",
+    "DENT",
+    "DM",
+    "ENT",
+    "JAG"
+  ],
+  "statistics": {
+    "SNR": {
+      "median": 2.682461323148161,
+      "mean": 2.788663543214826,
+      "scale": 0.919511211120114,
+      "train_missing": 0
+    },
+    "CV": {
+      "median": 1.292222376101496,
+      "mean": 1.3538904768549693,
+      "scale": 0.689341934098836,
+      "train_missing": 0
+    },
+    "GS": {
+      "median": 1.360384497419154,
+      "mean": 1.4097334833319075,
+      "scale": 0.7721983116322992,
+      "train_missing": 0
+    },
+    "TPAS": {
+      "median": 0.3342019079019771,
+      "mean": 0.33877567927684016,
+      "scale": 0.25078728548621493,
+      "train_missing": 0
+    },
+    "H2B": {
+      "median": 0.1427934188828136,
+      "mean": 0.1906305509517259,
+      "scale": 0.17379805805064988,
+      "train_missing": 4
+    },
+    "ZZ": {
+      "median": -1.319227607362245,
+      "mean": -1.3577248248540954,
+      "scale": 0.7607108066572273,
+      "train_missing": 0
+    },
+    "DZZ": {
+      "median": 0.6085798879142718,
+      "mean": 0.5886662844290148,
+      "scale": 0.31860027591077233,
+      "train_missing": 0
+    },
+    "PCC": {
+      "median": 1.976353700975913,
+      "mean": 1.9927665459457924,
+      "scale": 0.9926686076544935,
+      "train_missing": 0
+    },
+    "SKEW": {
+      "median": 1.3710607511411297,
+      "mean": 1.4213788196526185,
+      "scale": 1.1532010187139852,
+      "train_missing": 0
+    },
+    "DENT": {
+      "median": 3.75057348197626,
+      "mean": 3.8553270561907884,
+      "scale": 1.3687854607934746,
+      "train_missing": 0
+    },
+    "DM": {
+      "median": 0.4596633839945256,
+      "mean": 0.5651258537240593,
+      "scale": 0.38587719504780077,
+      "train_missing": 0
+    },
+    "ENT": {
+      "median": 3.6644977792004623,
+      "mean": 3.6413976911179136,
+      "scale": 1.1889513931564042,
+      "train_missing": 0
+    },
+    "JAG": {
+      "median": 0.7368421052631579,
+      "mean": 0.7505224945809859,
+      "scale": 0.3527798779575661,
+      "train_missing": 0
+    }
+  },
+  "near_zero_variance_scale_set_to_one": [],
+  "data_leakage_guard": "All statistics were fitted from the train manifest only; validation and test values were not inspected."
+}

@@ -1,0 +1,28 @@
+{
+  "status": "completed",
+  "bootstrap_replicates": 1000,
+  "bootstrap_random_seed": 20260728,
+  "test_selection_policy": "All checkpoints and thresholds selected on Val before Test inference; Test used only for final reporting.",
+  "dataset_archive_sha256": "070a1da29179f9b57b9a155d6ef88f29ac21c2287c3b72286c5a0eb12fdb2de2",
+  "source_file_leakage": false,
+  "outputs": [
+    "ablation_delta_vs_image_only.csv",
+    "ablation_test_core.csv",
+    "attribute_summary.csv",
+    "box_geometry_summary.csv",
+    "core_results.json",
+    "dataset_split_summary.csv",
+    "hyperparameters.csv",
+    "paper_methods_data_results.md",
+    "paper_results_manifest.json",
+    "peak_count_distribution.csv",
+    "review_corrections.csv",
+    "review_summary.csv",
+    "source_distribution.csv",
+    "test_detection_subgroups_all.csv",
+    "test_seed_calibration_all.csv",
+    "test_seed_subgroups_all.csv",
+    "validation_best_checkpoints.csv",
+    "validation_training_curves.csv"
+  ]
+}
