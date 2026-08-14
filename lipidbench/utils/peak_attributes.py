@@ -6,7 +6,7 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+from scipy import signal, stats
 
 from lipidbench.utils.eic_methods import extract_intensity
 
@@ -27,6 +27,17 @@ LITERATURE_TOP_COLUMNS = [
     "JAG",
 ]
 
+ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS = [
+    "SYM",
+    "MOD",
+    "EDGE",
+]
+
+PEAK_ATTRIBUTE_COLUMNS = [
+    *LITERATURE_TOP_COLUMNS,
+    *ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS,
+]
+
 
 @dataclass
 class Spectrum1:
@@ -35,7 +46,7 @@ class Spectrum1:
     intensity: np.ndarray
 
 
-def load_ms1_spectra(mzml_path: str | Path) -> list[Spectrum1]:
+def _load_ms1_spectra_pyopenms(mzml_path: str | Path) -> list[Spectrum1]:
     import pyopenms  # type: ignore
 
     exp = pyopenms.MSExperiment()
@@ -69,6 +80,70 @@ def load_ms1_spectra(mzml_path: str | Path) -> list[Spectrum1]:
         out.append(Spectrum1(rt_min=rt_min, mz=mz, intensity=inten))
 
     return out
+
+
+def _load_ms1_spectra_pymzml(mzml_path: str | Path) -> list[Spectrum1]:
+    import pymzml  # type: ignore
+
+    out: list[Spectrum1] = []
+    reader = pymzml.run.Reader(str(mzml_path))
+    for spec in reader:
+        try:
+            ms_level = int(getattr(spec, "ms_level", 1) or 1)
+        except Exception:
+            continue
+        if ms_level != 1:
+            continue
+
+        try:
+            rt_min = float(spec.scan_time_in_minutes())
+        except Exception:
+            continue
+
+        try:
+            peaks = spec.peaks("centroided")
+        except Exception:
+            peaks = spec.peaks("raw")
+
+        if peaks is None or len(peaks) == 0:
+            mz = np.asarray([], dtype=np.float64)
+            inten = np.asarray([], dtype=np.float64)
+        else:
+            arr = np.asarray(peaks, dtype=np.float64)
+            if arr.ndim != 2 or arr.shape[1] < 2:
+                mz = np.asarray([], dtype=np.float64)
+                inten = np.asarray([], dtype=np.float64)
+            else:
+                mz = np.asarray(arr[:, 0], dtype=np.float64)
+                inten = np.asarray(arr[:, 1], dtype=np.float64)
+
+        out.append(Spectrum1(rt_min=rt_min, mz=mz, intensity=inten))
+
+    return out
+
+
+def load_ms1_spectra(
+    mzml_path: str | Path,
+    backend: Literal["auto", "pyopenms", "pymzml"] = "auto",
+) -> list[Spectrum1]:
+    loaders = {
+        "pyopenms": _load_ms1_spectra_pyopenms,
+        "pymzml": _load_ms1_spectra_pymzml,
+    }
+
+    if backend == "auto":
+        order = ["pyopenms", "pymzml"]
+    else:
+        order = [str(backend)]
+
+    errors: list[str] = []
+    for name in order:
+        try:
+            return loaders[name](mzml_path)
+        except Exception as exc:
+            errors.append(f"{name}:{type(exc).__name__}:{exc}")
+
+    raise RuntimeError(f"failed to load mzML {mzml_path}: {' | '.join(errors)}")
 
 
 def _extract_trace(
@@ -238,6 +313,60 @@ def _shannon_entropy_from_hist(x: np.ndarray, bins: int = 256) -> float:
     return float(-np.sum(p * np.log2(p)))
 
 
+def _compute_additional_peak_features(eic_win: np.ndarray, apex_idx: int) -> dict[str, float]:
+    """Compute the three extended Seed-window attributes without changing A.
+
+    ``apex_idx`` is supplied by the existing extraction/windowing pipeline.  In
+    particular, MOD intentionally evaluates the smoothed trace at the original
+    apex index instead of finding a new smoothed apex.
+    """
+
+    out = {k: np.nan for k in ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS}
+    x = np.asarray(eic_win, dtype=np.float64)
+    n = int(x.size)
+    if n == 0 or apex_idx < 0 or apex_idx >= n:
+        return out
+
+    x = np.where(np.isfinite(x), x, 0.0)
+    x[x < 0] = 0.0
+    xA = float(x[apex_idx])
+    eps = 1e-12
+
+    # (14) SYM: compare equally long, apex-normalised left and right profiles.
+    k = int(min(apex_idx, n - 1 - apex_idx))
+    offsets = np.arange(1, k + 1, dtype=np.int64)
+    left = x[apex_idx - offsets] / (xA + eps)
+    right = x[apex_idx + offsets] / (xA + eps)
+    numerator = float(np.sum(np.abs(left - right)))
+    denominator = float(np.sum(left + right) + eps)
+    out["SYM"] = float(np.clip(1.0 - numerator / denominator, 0.0, 1.0))
+
+    # (15) MOD: strongest secondary-peak prominence on the same MA(3) trace
+    # used by DZZ/PCC, excluding peaks within two scans of the original apex A.
+    y = _moving_average3(x)
+    peak_indices, properties = signal.find_peaks(y, prominence=0.0)
+    if peak_indices.size:
+        keep = np.abs(peak_indices.astype(np.int64) - int(apex_idx)) > 2
+        prominences = np.asarray(properties.get("prominences", []), dtype=np.float64)
+        secondary = prominences[keep]
+        secondary = secondary[np.isfinite(secondary)]
+        secondary_prominence = float(np.max(secondary)) if secondary.size else 0.0
+    else:
+        secondary_prominence = 0.0
+    mod_denominator = float(y[apex_idx]) + eps
+    out["MOD"] = float(np.clip(secondary_prominence / mod_denominator, 0.0, 1.0))
+
+    # (16) EDGE: preserve the raw continuous edge/apex ratio.  Downstream
+    # train-only preprocessing performs median imputation and z-scoring.
+    edge_count = int(max(3, round(0.10 * n)))
+    edge_count = min(edge_count, n)
+    left_edge = float(np.median(x[:edge_count]))
+    right_edge = float(np.median(x[-edge_count:]))
+    out["EDGE"] = float(max(left_edge, right_edge) / (xA + eps))
+
+    return out
+
+
 def _compute_literature_top_features(rt_win: np.ndarray, eic_win: np.ndarray, apex_idx: int) -> dict[str, float]:
     out = {k: np.nan for k in LITERATURE_TOP_COLUMNS}
 
@@ -356,7 +485,7 @@ def _compute_one_feature_attributes(
         rt_tol_min = float(rt_tol_sec) / 60.0
         in_win = (rt >= (target_rt_min - rt_tol_min)) & (rt <= (target_rt_min + rt_tol_min))
 
-    out = {c: np.nan for c in LITERATURE_TOP_COLUMNS}
+    out = {c: np.nan for c in PEAK_ATTRIBUTE_COLUMNS}
 
     if not np.any(in_win):
         return out
@@ -379,6 +508,7 @@ def _compute_one_feature_attributes(
     # Delegate all calculation to the literature top features method which is verified perfectly correct
     calc_out = _compute_literature_top_features(rt_win=rt_win, eic_win=eic_win, apex_idx=apex_idx)
     out.update(calc_out)
+    out.update(_compute_additional_peak_features(eic_win=eic_win, apex_idx=apex_idx))
 
     return out
 

@@ -22,6 +22,9 @@ BASE_ATTRIBUTE_NAMES = (
     "DM",
     "ENT",
     "JAG",
+    "SYM",
+    "MOD",
+    "EDGE",
 )
 
 
