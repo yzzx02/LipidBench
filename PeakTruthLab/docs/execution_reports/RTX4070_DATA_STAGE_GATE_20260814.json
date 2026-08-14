@@ -1,0 +1,107 @@
+{
+  "execution_date": "2026-08-14",
+  "status": "stopped_at_16_attribute_merge_gate",
+  "old_final": {
+    "root": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2",
+    "archive": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\paper_final_reviewed_20260725\\dataset_release\\PeakTruthLab-dataset-v2.zip",
+    "archive_sha256": "070A1DA29179F9B57B9A155D6EF88F29AC21C2287C3B72286C5A0EB12FDB2DE2",
+    "image_count": 15317,
+    "manifest_rows": {
+      "train": 10525,
+      "val": 2507,
+      "test": 2285
+    },
+    "manifest_sha256": {
+      "train": "8163D3D4F57C322AAA6CF2DC7F45C495A52B84D654BF4354D6ADBE29309036A7",
+      "val": "E3B461CB74D4A2743D74C94771133F3D7B29E8B50D54E016BE18C02BC933C76C",
+      "test": "16C2C80106C688EF1E35E493FEA06129EBD168CBFD28CA6EA293EF577D4B5A75"
+    },
+    "review_evidence": {
+      "reviewed_samples": 150,
+      "manually_changed_samples": 66,
+      "boxes_added": 52,
+      "boxes_removed": 23,
+      "seed_label_changes": 29,
+      "seed_0_to_1": 21,
+      "seed_1_to_0": 8,
+      "review_json_sha256_mismatch_count": 0
+    },
+    "attribute_dimension": 13,
+    "source_mzml_count": 29
+  },
+  "new_release": {
+    "asset": "D:\\CODE\\downloads\\PeakTruthLab_RTX4070_20260814\\PeakTruthLab_manual_negative_4500_v2_20260814.zip",
+    "asset_size_bytes": 267610203,
+    "sha256": "F89632310064E5F92A484AB7FD75A05ABF3DC55631F7077B2C9A328D4F0CB409",
+    "sha256_match": true,
+    "extraction_root": "D:\\CODE\\downloads\\PeakTruthLab_RTX4070_20260814\\extracted\\manual_negative_4500_v2_staging",
+    "png_count": 4500,
+    "labelme_json_count": 4500,
+    "bad_png_dimension_count": 0,
+    "invalid_json_count": 0,
+    "seed_rows": 4500,
+    "unique_seed_ids": 4500,
+    "peak_rows": 335,
+    "unique_peak_ids": 335,
+    "true_peak_count": 328,
+    "out_fig_count": 7,
+    "nonfinite_seed_attribute_values": 0,
+    "nonfinite_peak_attribute_values": 0,
+    "f0108_restored_seed_bounds_match": true
+  },
+  "blocker": {
+    "missing_required_attributes": ["SYM", "MOD", "EDGE"],
+    "required_input": "original mzML-derived EIC windows with the existing apex definition",
+    "local_mzml_files_found": 0,
+    "github_release_contains_mzml": false,
+    "nonpublic_required_source": "frag1_pos20_1.mzML",
+    "nonpublic_source_old_sample_count": 1000,
+    "required_source_files": [
+      {"name": "0001_MAY_RoCI-StEM_CP-287.mzML", "old_final_rows": 465},
+      {"name": "0021_MAY_ROCI-StEM_HN_575.mzML", "old_final_rows": 502},
+      {"name": "060-0145-005_017.mzML", "old_final_rows": 504},
+      {"name": "060-0145-006_018.mzML", "old_final_rows": 515},
+      {"name": "20180321_S00033936_P.mzML", "old_final_rows": 749},
+      {"name": "20180323_S00033882_N.mzML", "old_final_rows": 683},
+      {"name": "6545A_20230727_-_57_18.mzML", "old_final_rows": 521},
+      {"name": "6545A_20230729_+_07_9.mzML", "old_final_rows": 519},
+      {"name": "6545_20201012_14_+_QC 01.mzML", "old_final_rows": 512},
+      {"name": "6545_20201012_22_+_QC 03.mzML", "old_final_rows": 515},
+      {"name": "AG-88-11_r12-.mzML", "old_final_rows": 520},
+      {"name": "AG-88-11_r2+.mzML", "old_final_rows": 516},
+      {"name": "Blood-15V.mzML", "old_final_rows": 523},
+      {"name": "Blood-30V.mzML", "old_final_rows": 520},
+      {"name": "D03P_POS.mzML", "old_final_rows": 514},
+      {"name": "D04P_NEG.mzML", "old_final_rows": 302},
+      {"name": "D06P_POS.mzML", "old_final_rows": 517},
+      {"name": "D07P_NEG.mzML", "old_final_rows": 284},
+      {"name": "HepG2-30V.mzML", "old_final_rows": 524},
+      {"name": "HetCD_mixneg.mzML", "old_final_rows": 506},
+      {"name": "NIST_Full scan_1_POS.mzML", "old_final_rows": 502},
+      {"name": "NIST_Full scan_2_NEG.mzML", "old_final_rows": 511},
+      {"name": "Sphingolipid-BTSPT-Cell-pellet_1.mzML", "old_final_rows": 533},
+      {"name": "Sphingolipid-BTSPT-OMV_1.mzML", "old_final_rows": 535},
+      {"name": "Sphingolipid-BTWT-Cell-pellet_1.mzML", "old_final_rows": 542},
+      {"name": "Urine-15V.mzML", "old_final_rows": 486},
+      {"name": "Urine-30V.mzML", "old_final_rows": 509},
+      {"name": "WTHFD_mixpos.mzML", "old_final_rows": 488},
+      {"name": "frag1_pos20_1.mzML", "old_final_rows": 1000}
+    ],
+    "forbidden_substitutions": [
+      "PNG-derived approximate attributes",
+      "constant or zero filling",
+      "global imputation before splitting",
+      "copying attributes from other samples"
+    ]
+  },
+  "actions_not_started": [
+    "old_new_merge",
+    "deduplication_and_conflict_resolution",
+    "main_80_10_10_split",
+    "smoke_test",
+    "four_mode_ablation_training",
+    "main_test_evaluation",
+    "LODO"
+  ],
+  "protected_old_final_modified": false
+}
