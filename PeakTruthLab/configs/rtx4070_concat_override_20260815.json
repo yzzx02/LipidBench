@@ -1,0 +1,23 @@
+{
+  "decision_date": "2026-08-15",
+  "decision_type": "user_authorized_protocol_override",
+  "selected_model": "naive_concat",
+  "selected_input": "image plus 16 raw peak attributes",
+  "selection_reason": "Prefer the simpler direct-concatenation fusion because the single-split validation difference from gated fusion is very small and not supported by paired-bootstrap evidence of a stable difference.",
+  "validation_evidence": {
+    "naive_concat_roc_auc": 0.9951326528926302,
+    "gated_fusion_roc_auc": 0.995449673272807,
+    "gated_minus_concat": 0.00031702038017678014,
+    "paired_bootstrap_95_ci": [
+      -0.0004924424571897817,
+      0.0011821933267673213
+    ],
+    "paired_bootstrap_two_sided_p": 0.4179999999999999
+  },
+  "reporting_constraint": "This is a user/design choice based on parsimony, not a claim that Naive concat ranked first on validation.",
+  "hyperparameters_changed": false,
+  "extra_seed_gate_waived": true,
+  "main_test_policy": "Evaluate each of the four already locked main-ablation checkpoints exactly once; do not tune from Test.",
+  "lodo_policy": "Use only locked Naive concat plus 16 attributes, the frozen training configuration and seed 20260814; each held-out domain remains unavailable to fold preprocessing, checkpoint selection and threshold selection.",
+  "test_accessed_before_override": false
+}
