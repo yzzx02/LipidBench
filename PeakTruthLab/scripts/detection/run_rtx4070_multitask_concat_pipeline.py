@@ -25,8 +25,15 @@ def write_json(path: Path, value: Any) -> None:
 
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0])
+    seen = set(fieldnames)
+    for row in rows[1:]:
+        for field in row:
+            if field not in seen:
+                fieldnames.append(field)
+                seen.add(field)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -82,9 +89,9 @@ def training_command(
         "--val-limit",
         "999999",
         "--epochs",
-        "15",
+        "30",
         "--batch-size",
-        "8",
+        "16",
         "--gradient-accumulation-steps",
         "1",
         "--amp",
@@ -142,7 +149,7 @@ def evaluation_command(
         "--output-dir",
         str(output_dir),
         "--batch-size",
-        "8",
+        "16",
         "--seed",
         "20260814",
     ]
@@ -164,8 +171,8 @@ def ensure_training(
         summary = read_json(summary_path)
         if summary.get("status") != "ok" or summary.get("fusion_mode") != "naive_concat":
             raise RuntimeError(f"invalid training summary: {summary_path}")
-        if int(summary.get("epochs_completed", 0)) != 15:
-            raise RuntimeError(f"training summary did not complete 15 epochs: {summary_path}")
+        if int(summary.get("epochs_completed", 0)) != 30:
+            raise RuntimeError(f"training summary did not complete 30 epochs: {summary_path}")
         print(json.dumps({"event": "training_already_complete", "output": str(output_dir)}), flush=True)
         return summary
     print(json.dumps({"event": "training_start", "output": str(output_dir)}), flush=True)
@@ -252,8 +259,8 @@ def main(args: argparse.Namespace) -> None:
             "model": "PeakMultiTaskRCNN Naive concat",
             "task": "joint detection + Seed classification",
             "seed": 20260814,
-            "epochs": 15,
-            "batch_size": 8,
+            "epochs": 30,
+            "batch_size": 16,
             "image_size": 480,
             "fp16": True,
             "optimizer": "AdamW",
@@ -380,7 +387,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--result-root",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\multitask_concat_detection_seed_20260815"),
+        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\multitask_concat_detection_seed_20260816_bs16_ep30"),
     )
     parser.add_argument(
         "--train-script",

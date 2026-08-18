@@ -1,0 +1,170 @@
+{
+  "status": "ok",
+  "failures": [],
+  "verified_counts": {
+    "seed_rows": 19817,
+    "peak_rows": 18915,
+    "png_files": 19817,
+    "labelme_json_files": 19817,
+    "labelme_shapes": {
+      "True_Peak": 18815,
+      "OUT_FIG": 100
+    },
+    "split_rows": {
+      "train": 15853,
+      "val": 1982,
+      "test": 1982
+    }
+  },
+  "attribute_nonfinite": {
+    "seed": {
+      "SNR": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "CV": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "GS": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "TPAS": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "H2B": {
+        "nan_count": 4,
+        "inf_count": 0
+      },
+      "ZZ": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "DZZ": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "PCC": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "SKEW": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "DENT": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "DM": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "ENT": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "JAG": {
+        "nan_count": 0,
+        "inf_count": 0
+      },
+      "SYM": {
+        "nan_count": 3,
+        "inf_count": 0
+      },
+      "MOD": {
+        "nan_count": 3,
+        "inf_count": 0
+      },
+      "EDGE": {
+        "nan_count": 3,
+        "inf_count": 0
+      }
+    },
+    "peak_instance": {
+      "SNR": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "CV": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "GS": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "TPAS": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "H2B": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "ZZ": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "DZZ": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "PCC": {
+        "nan_count": 82,
+        "inf_count": 0
+      },
+      "SKEW": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "DENT": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "DM": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "ENT": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "JAG": {
+        "nan_count": 11,
+        "inf_count": 0
+      },
+      "SYM": {
+        "nan_count": 8,
+        "inf_count": 0
+      },
+      "MOD": {
+        "nan_count": 8,
+        "inf_count": 0
+      },
+      "EDGE": {
+        "nan_count": 8,
+        "inf_count": 0
+      }
+    }
+  },
+  "portable_path_issues": 0,
+  "missing_files": 0,
+  "content_hash_mismatches": 0,
+  "new_labelme_shape_mismatches": 0,
+  "test_lock": {
+    "test_csv_sha256": "b92aefb41be6dfdbbb025059873e7b5cbd3ce381c534d153b109fa7bd04de9c8",
+    "test_jsonl_sha256": "618abf3661ffb5a2bfe5a58b64ba444604353c0e27f678e52dcbd3a7f49b4461"
+  },
+  "protected_old_final_hashes": {
+    "train_manifest": "8163d3d4f57c322aaa6cf2dc7f45c495a52b84d654bf4354d6adbe29309036a7",
+    "val_manifest": "e3b461cb74d4a2743d74c94771133f3d7b29e8b50d54e016be18c02bc933c76c",
+    "test_manifest": "16c2c80106c688ef1e35e493fea06129ebd168cbfd28ca6ea293ef577d4b5a75",
+    "representative_first": "ad33a3b978d8cce35bb762fbb4ad4b0c1082360f05c82b0e7a7fc447e36ee56b",
+    "representative_middle": "8927b86b2d334aa4f3df2ff07c0cb6d097c3dfc85329da08f8593fb40ca08a7a",
+    "representative_last": "d3cfc07acf6132de4d84f24cc3c591d9a95fa9e7385ee49ff9b6a33c2c1c1743"
+  },
+  "new_release_zip_sha256": "f89632310064e5f92a484ab7fd75a05abf3dc55631f7077b2c9a328d4f0cb409"
+}

@@ -1,0 +1,37 @@
+{
+  "release": "rtx4070_final_20260818",
+  "checkpoint_policy": {
+    "included": [
+      "main_split/training/best_detection.pt",
+      "main_split/training/best_seed.pt"
+    ],
+    "excluded": [
+      "all last.pt/last.pth",
+      "all LODO/fold checkpoints",
+      "multitask_concat_detection_seed_20260815"
+    ]
+  },
+  "assets": [
+    {
+      "file": "LipidBench_Main_model_weights_20260818.zip",
+      "bytes": 1161024628,
+      "sha256": "66b8917e7bc4df5908f1c7143e6e66b4cdf4453001e536f443875c59aeb98a38",
+      "member_count": 9,
+      "purpose": "Main split best_detection.pt and best_seed.pt with locked configuration"
+    },
+    {
+      "file": "LipidBench_second_experiment_results_no_fold_weights_20260818.zip",
+      "bytes": 83487360,
+      "sha256": "43a0cd8807dfbaced38a313587c9f69413fe86a1de5e4c08c8db069a2e0d2f6b",
+      "member_count": 1291,
+      "purpose": "All second-experiment metrics, histories, thresholds, predictions, logs, and audits; no checkpoints"
+    },
+    {
+      "file": "PeakTruthLab_final_dataset_20260814.zip",
+      "bytes": 599114547,
+      "sha256": "2d79dc9ee1f030092741775173345200c851e74b5b364ac8d381c3e1496ad205",
+      "member_count": 39794,
+      "purpose": "Final merged portable dataset with PNG, LabelMe JSON, raw 16 attributes, splits, manifests, and QC"
+    }
+  ]
+}

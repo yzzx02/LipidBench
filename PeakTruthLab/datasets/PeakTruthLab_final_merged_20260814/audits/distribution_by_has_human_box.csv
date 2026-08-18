@@ -1,0 +1,3 @@
+﻿dimension,value,images,seed_positive,seed_negative,with_human_box,true_peak_instances,out_fig_instances
+has_human_box,False,8158,0,8158,0,0,0
+has_human_box,True,11659,11109,550,11659,18815,100

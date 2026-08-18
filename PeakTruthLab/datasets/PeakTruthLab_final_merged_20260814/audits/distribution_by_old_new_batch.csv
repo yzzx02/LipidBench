@@ -1,0 +1,3 @@
+﻿dimension,value,images,seed_positive,seed_negative,with_human_box,true_peak_instances,out_fig_instances
+old_new_batch,new_manual_negative_4500_v2_20260814,4500,89,4411,258,328,7
+old_new_batch,old_final_reviewed_20260725,15317,11020,4297,11401,18487,93

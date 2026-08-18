@@ -1,0 +1,4 @@
+﻿dimension,value,images,seed_positive,seed_negative,with_human_box,true_peak_instances,out_fig_instances
+split,test,1982,1114,868,1167,1900,11
+split,train,15853,8887,6966,9330,15036,84
+split,val,1982,1108,874,1162,1879,5

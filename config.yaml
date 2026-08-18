@@ -12,10 +12,6 @@ common_params:
   mz_tolerance_ppm: 10.0
   rt_tolerance_sec: 10.0
   n_workers: 4
-runtime:
-  # 可选：当 GUI 当前解释器无法导入 pyopenms 时，指定一个已安装 pyopenms 的 python.exe
-  # 示例（Windows）："D:/miniconda3/envs/pyopenms/python.exe"
-  pyopenms_python: "C:/Users/Administrator/AppData/Local/Programs/Python/Python313/python.exe"
 parameters:
   xcms:
     peak_picking:
@@ -59,5 +55,3 @@ eic_export:
   image_dpi: 100
   max_features: 200
   smooth_sigma: 0.0
-
-  

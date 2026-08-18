@@ -1,0 +1,8 @@
+{
+  "status": "LOCKED",
+  "created_by_seed": 20260814,
+  "selection_prohibition": "Test must not be used for model, epoch, threshold, preprocessing, early-stop, or hyperparameter selection.",
+  "test_csv_sha256": "b92aefb41be6dfdbbb025059873e7b5cbd3ce381c534d153b109fa7bd04de9c8",
+  "test_jsonl_sha256": "618abf3661ffb5a2bfe5a58b64ba444604353c0e27f678e52dcbd3a7f49b4461",
+  "test_rows": 1982
+}

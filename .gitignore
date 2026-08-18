@@ -11,6 +11,7 @@
 # 忽略Python产生的缓存垃圾
 __pycache__/
 *.pyc
+.pytest_cache/
 
 
 #忽略虚拟环境
@@ -23,6 +24,8 @@ __pycache__/
 *.jpeg
 *.json
 *.png
+*.jsonl
+*.sha256
 
 
 # =========================
@@ -61,3 +64,16 @@ models/
 .codex_tmp/
 PeakTruthLab/results/
 PeakTruthLab/releases/
+
+# Compact final delivery and inspectable final dataset metadata stay in Git.
+!/PeakTruthLab/final_delivery/
+!/PeakTruthLab/final_delivery/**
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/tables/
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/tables/*.csv
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/audits/
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/audits/*.csv
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/audits/*.json
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/*.csv
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/*.json
+!/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/*.sha256

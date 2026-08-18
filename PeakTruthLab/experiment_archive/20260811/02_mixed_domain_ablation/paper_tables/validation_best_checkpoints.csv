@@ -1,5 +1,0 @@
-﻿experiment_id,condition,fusion_mode,parameter_count,training_seconds,peak_gpu_memory_allocated_bytes,peak_gpu_memory_reserved_bytes,best_detection_epoch,best_val_detection_f1_at_0_5,best_seed_epoch,best_val_seed_balanced_accuracy_at_0_5
-A_image_only,Image only,image_only,48333636,2871.7606526999734,3576924160,3726639104,5,0.8480909829406986,4,0.9670716885844588
-B_attr_only,Attributes only (Seed head),attr_only,48284484,3014.382553500007,3552248320,3726639104,7,0.8507391511683358,10,0.9404183161550549
-C_naive_concat,Naive concatenation,naive_concat,48350020,3036.604662799975,3577162752,3726639104,3,0.8270836496128738,3,0.9663396205635891
-D_gated_fusion,Gated fusion,gated_fusion,48497988,3056.05006290006,3578938368,3728736256,3,0.845065946289528,5,0.9681734779966606
