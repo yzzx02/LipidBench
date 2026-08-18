@@ -1,0 +1,9 @@
+﻿seed_id,duplicate_group_id,reason,action
+OLD::Blood-30V__F1321,DUP-00012,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::Blood-30V__F1322,DUP-00012,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::Blood-30V__F1396,DUP-00013,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::Blood-30V__F1397,DUP-00013,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::HepG2-30V__F1111,DUP-00020,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::HepG2-30V__F1112,DUP-00020,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::HepG2-30V__F1369,DUP-00030,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label
+OLD::HepG2-30V__F1370,DUP-00030,near_duplicate_label_conflict_pending_manual_confirmation,excluded_from_test_only; retained in merged dataset with original authoritative label

@@ -28,7 +28,9 @@ def _record(
     missing_tpas: bool = False,
     subsets: list[str] | None = None,
 ) -> PeakManifestRecord:
-    attributes: list[float | None] = [float(index + offset) for offset in range(13)]
+    attributes: list[float | None] = [
+        float(index + offset) for offset in range(len(BASE_ATTRIBUTE_NAMES))
+    ]
     if missing_tpas:
         attributes[3] = None
     return PeakManifestRecord.from_mapping(
@@ -130,8 +132,8 @@ def test_dataset_is_lazy_and_returns_complete_multitask_sample(
     assert independent_false_seed["seed_label"].item() == 0.0
     assert independent_false_seed["target"]["boxes"].shape == (1, 4)
     assert independent_false_seed["seed_box"].shape == (1, 4)
-    assert independent_false_seed["attributes"].shape == (13,)
-    assert independent_false_seed["attribute_mask"].shape == (13,)
+    assert independent_false_seed["attributes"].shape == (16,)
+    assert independent_false_seed["attribute_mask"].shape == (16,)
     assert not independent_false_seed["attribute_mask"][3]
     assert torch.isnan(independent_false_seed["attributes"][3])
     assert multiple["target"]["boxes"].shape == (2, 4)
@@ -142,8 +144,8 @@ def test_dataset_is_lazy_and_returns_complete_multitask_sample(
     batch = collate_peak_multitask_batch([empty, independent_false_seed, multiple])
     assert len(batch["images"]) == 3
     assert [target["boxes"].shape[0] for target in batch["targets"]] == [0, 1, 2]
-    assert batch["attributes"].shape == (3, 13)
-    assert batch["attribute_masks"].shape == (3, 13)
+    assert batch["attributes"].shape == (3, 16)
+    assert batch["attribute_masks"].shape == (3, 16)
     assert batch["seed_labels"].shape == (3,)
     assert len(batch["seed_boxes"]) == 3
 
@@ -280,5 +282,5 @@ def test_manifest_validation_rejects_duplicate_ids_and_wrong_attribute_count(
 
     invalid = synthetic_records[0].to_mapping()
     invalid["attributes"] = invalid["attributes"][:-1]
-    with pytest.raises(ValueError, match="13 values"):
+    with pytest.raises(ValueError, match="16 values"):
         PeakManifestRecord.from_mapping(invalid)

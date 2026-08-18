@@ -1,0 +1,17 @@
+{
+  "status": "STOPPED_BY_PREDECLARED_VALIDATION_GATE",
+  "decision_date": "2026-08-15",
+  "selection_metric": "maximum validation ROC-AUC",
+  "winner": "Image-gated-Attribute",
+  "winner_val_roc_auc": 0.995449673272807,
+  "concat_val_roc_auc": 0.9951326528926302,
+  "winner_minus_concat": 0.00031702038017678014,
+  "concat_is_best": false,
+  "continue_to_three_seed_confirmation": false,
+  "continue_to_main_test": false,
+  "continue_to_lodo": false,
+  "reason": "The frozen protocol requires Naive concat to rank first on Val before Test or LODO. Image-gated-Attribute ranked first, so training and evaluation stop here.",
+  "main_test_accessed": false,
+  "test_manifest_remains_locked": true,
+  "no_test_based_tuning": true
+}

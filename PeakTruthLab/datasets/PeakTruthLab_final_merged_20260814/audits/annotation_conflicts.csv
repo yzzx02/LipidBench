@@ -1,0 +1,5 @@
+﻿conflict_id,duplicate_group_id,conflict_type,seed_ids,labels,resolution
+CONFLICT-0001,DUP-00012,near_duplicate_seed_label_disagreement,OLD::Blood-30V__F1321|OLD::Blood-30V__F1322,0|1,retain authoritative old-final labels; keep group intact; exclude entire group from Test
+CONFLICT-0002,DUP-00013,near_duplicate_seed_label_disagreement,OLD::Blood-30V__F1396|OLD::Blood-30V__F1397,0|1,retain authoritative old-final labels; keep group intact; exclude entire group from Test
+CONFLICT-0003,DUP-00020,near_duplicate_seed_label_disagreement,OLD::HepG2-30V__F1111|OLD::HepG2-30V__F1112,0|1,retain authoritative old-final labels; keep group intact; exclude entire group from Test
+CONFLICT-0004,DUP-00030,near_duplicate_seed_label_disagreement,OLD::HepG2-30V__F1369|OLD::HepG2-30V__F1370,0|1,retain authoritative old-final labels; keep group intact; exclude entire group from Test

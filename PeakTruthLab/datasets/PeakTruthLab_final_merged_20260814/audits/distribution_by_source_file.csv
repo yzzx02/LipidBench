@@ -1,0 +1,30 @@
+﻿dimension,value,images,seed_positive,seed_negative,with_human_box,true_peak_instances,out_fig_instances
+source_file,0001_MAY_RoCI-StEM_CP-287,565,169,396,185,290,0
+source_file,0021_MAY_ROCI-StEM_HN_575,517,166,351,171,211,6
+source_file,060-0145-005_017,605,156,449,167,231,0
+source_file,060-0145-006_018,619,488,131,491,731,0
+source_file,20180321_S00033936_P,849,688,161,693,1042,17
+source_file,20180323_S00033882_N,783,627,156,632,870,9
+source_file,6545A_20230727_-_57_18,622,497,125,504,850,2
+source_file,6545A_20230729_+_07_9,1119,531,588,586,1178,2
+source_file,6545_20201012_14_+_QC 01,1112,503,609,522,731,0
+source_file,6545_20201012_22_+_QC 03,1115,506,609,535,762,4
+source_file,AG-88-11_r12-,624,493,131,500,605,3
+source_file,AG-88-11_r2+,1116,503,613,522,724,1
+source_file,Blood-15V,624,461,163,499,1043,10
+source_file,Blood-30V,520,388,132,410,841,4
+source_file,D03P_POS,1114,514,600,528,1164,21
+source_file,D04P_NEG,456,247,209,248,377,3
+source_file,D06P_POS,618,462,156,473,982,15
+source_file,D07P_NEG,385,226,159,233,326,0
+source_file,HepG2-30V,524,388,136,403,695,0
+source_file,HetCD_mixneg,606,139,467,152,206,0
+source_file,NIST_Full scan_1_POS,602,219,383,235,389,0
+source_file,NIST_Full scan_2_NEG,511,346,165,355,525,0
+source_file,Sphingolipid-BTSPT-Cell-pellet_1,533,284,249,287,328,0
+source_file,Sphingolipid-BTSPT-OMV_1,535,322,213,327,434,0
+source_file,Sphingolipid-BTWT-Cell-pellet_1,542,360,182,369,479,0
+source_file,Urine-15V,604,421,183,439,864,1
+source_file,Urine-30V,509,388,121,390,752,0
+source_file,WTHFD_mixpos,488,174,314,182,262,2
+source_file,frag1_pos20_1,1000,443,557,621,923,0

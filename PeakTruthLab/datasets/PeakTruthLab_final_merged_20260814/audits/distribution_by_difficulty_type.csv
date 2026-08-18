@@ -1,0 +1,8 @@
+﻿dimension,value,images,seed_positive,seed_negative,with_human_box,true_peak_instances,out_fig_instances
+difficulty_type,DOUBLE,600,2,598,14,16,0
+difficulty_type,EDGE,450,13,437,49,67,3
+difficulty_type,JAG,750,1,749,10,13,0
+difficulty_type,NOISE,1500,17,1483,90,109,3
+difficulty_type,PLAT,600,44,556,62,75,0
+difficulty_type,SHOULDER,600,12,588,33,48,1
+difficulty_type,not_applicable_old_final,15317,11020,4297,11401,18487,93

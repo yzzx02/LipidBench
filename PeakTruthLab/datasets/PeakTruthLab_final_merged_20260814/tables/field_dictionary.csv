@@ -1,0 +1,8 @@
+﻿field,table,definition
+seed_id,seed_master/manifests,Unique namespaced Seed/candidate ID (OLD:: or NEW::).
+image_id,seed_master/peak_master/manifests,Unique merged image ID PTL-######.
+domain_id,all,Independent public study ID or self-collected acquisition project; not individual mzML.
+seed_label,seed_master/manifests,"Authoritative binary Seed truth label, 1=true candidate, 0=false candidate."
+duplicate_group_id,seed_master/manifests,Non-empty for exact/near duplicate connected components; components cannot cross splits.
+exclude_from_test,seed_master/manifests,True only for unresolved label-conflict groups; retained outside Test.
+SNR..EDGE,seed_master/peak_master/manifests,Raw 16 peak attributes. Missing legacy states are preserved; train-only imputation/standardization occurs in the model pipeline.
