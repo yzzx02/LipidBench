@@ -170,7 +170,7 @@ def _compute_all_features(top_df: pd.DataFrame) -> pd.DataFrame:
             tolerance_unit="ppm",
             method="nearest",
             rt_tol_sec=30.0,
-            include_literature_top=True,
+
         )
 
         calc = calc.drop_duplicates(subset=["Feature_ID"], keep="first")

@@ -11,7 +11,7 @@ from scipy import signal, stats
 from lipidbench.utils.eic_methods import extract_intensity
 
 
-LITERATURE_TOP_COLUMNS = [
+PEAK_ATTRIBUTE_COLUMNS = [
     "SNR",
     "CV",
     "GS",
@@ -25,19 +25,10 @@ LITERATURE_TOP_COLUMNS = [
     "DM",
     "ENT",
     "JAG",
-]
-
-ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS = [
     "SYM",
     "MOD",
     "EDGE",
 ]
-
-PEAK_ATTRIBUTE_COLUMNS = [
-    *LITERATURE_TOP_COLUMNS,
-    *ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS,
-]
-
 
 @dataclass
 class Spectrum1:
@@ -314,14 +305,14 @@ def _shannon_entropy_from_hist(x: np.ndarray, bins: int = 256) -> float:
 
 
 def _compute_additional_peak_features(eic_win: np.ndarray, apex_idx: int) -> dict[str, float]:
-    """Compute the three extended Seed-window attributes without changing A.
+    """Compute candidate symmetry, modality, and edge attributes.
 
     ``apex_idx`` is supplied by the existing extraction/windowing pipeline.  In
     particular, MOD intentionally evaluates the smoothed trace at the original
     apex index instead of finding a new smoothed apex.
     """
 
-    out = {k: np.nan for k in ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS}
+    out = {k: np.nan for k in ("SYM", "MOD", "EDGE")}
     x = np.asarray(eic_win, dtype=np.float64)
     n = int(x.size)
     if n == 0 or apex_idx < 0 or apex_idx >= n:
@@ -367,8 +358,10 @@ def _compute_additional_peak_features(eic_win: np.ndarray, apex_idx: int) -> dic
     return out
 
 
-def _compute_literature_top_features(rt_win: np.ndarray, eic_win: np.ndarray, apex_idx: int) -> dict[str, float]:
-    out = {k: np.nan for k in LITERATURE_TOP_COLUMNS}
+def _compute_peak_features(rt_win: np.ndarray, eic_win: np.ndarray, apex_idx: int) -> dict[str, float]:
+    """Compute the complete current 16-attribute candidate representation."""
+    out = {k: np.nan for k in PEAK_ATTRIBUTE_COLUMNS}
+    out.update(_compute_additional_peak_features(eic_win, apex_idx))
 
     x = np.asarray(eic_win, dtype=np.float64)
     n = int(x.size)
@@ -475,7 +468,6 @@ def _compute_one_feature_attributes(
     target_rtmin: float | None,
     target_rtmax: float | None,
     rt_tol_sec: float,
-    include_literature_top: bool = False,
 ) -> dict:
     if target_rtmin is not None and target_rtmax is not None and np.isfinite(target_rtmin) and np.isfinite(target_rtmax):
         lo = float(min(target_rtmin, target_rtmax))
@@ -505,10 +497,8 @@ def _compute_one_feature_attributes(
     if not np.isfinite(apex_int) or apex_int <= 0:
         return out
 
-    # Delegate all calculation to the literature top features method which is verified perfectly correct
-    calc_out = _compute_literature_top_features(rt_win=rt_win, eic_win=eic_win, apex_idx=apex_idx)
+    calc_out = _compute_peak_features(rt_win=rt_win, eic_win=eic_win, apex_idx=apex_idx)
     out.update(calc_out)
-    out.update(_compute_additional_peak_features(eic_win=eic_win, apex_idx=apex_idx))
 
     return out
 
@@ -521,7 +511,6 @@ def compute_peak_attributes(
     tolerance_unit: Literal["ppm", "Da"] = "Da",
     method: Literal["nearest", "window_sum"] = "nearest",
     rt_tol_sec: float = 30.0,
-    include_literature_top: bool = False,
 ) -> pd.DataFrame:
     if "mz" not in features_df.columns or "RT" not in features_df.columns:
         raise ValueError("features_df 必须包含 mz 和 RT 列")
@@ -556,7 +545,6 @@ def compute_peak_attributes(
             target_rtmin=(None if pd.isna(rtmin) else float(rtmin)),
             target_rtmax=(None if pd.isna(rtmax) else float(rtmax)),
             rt_tol_sec=float(rt_tol_sec),
-            include_literature_top=bool(include_literature_top),
         )
 
         out = dict(row)

@@ -2,7 +2,7 @@ model:
   name: PeakMultiTaskRCNN
   num_classes: 2
   pretrained: true
-  attr_dim: 13
+  attr_dim: 16
   fpn_out_channels: 256
 
   # TorchVision defines anchor aspect ratio as height / width. Ratios greater
@@ -46,7 +46,9 @@ model:
   attr_embedding_dim: 64
   fusion_hidden_dim: 256
   fusion_dropout: 0.2
-  fusion_mode: gated_fusion
+  # Current released model uses all 16 attributes with naive concatenation.
+  # image_only, attr_only, and gated_fusion remain available for ablations.
+  fusion_mode: naive_concat
 
 loss:
   seed_loss_type: weighted_bce

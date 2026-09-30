@@ -19,7 +19,9 @@ from torchvision.ops import box_iou
 
 
 PROJECT_ROOT = Path(
-    os.environ.get("LIPIDBENCH_PROJECT_ROOT", r"D:\CODE\LipidBench")
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
 ).resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))

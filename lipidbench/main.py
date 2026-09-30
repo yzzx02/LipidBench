@@ -3,17 +3,17 @@ import importlib
 from pathlib import Path
 from types import SimpleNamespace
 
-from lipidbench.utils.config_io import load_config
-from lipidbench.utils.feature_table_io import find_feature_table, load_feature_table, standardize_rt_columns_for_display
+from lipidbench.utils.config_io import get_base_dir, load_config, _resolve_path
+from lipidbench.utils.feature_table_io import find_feature_table, load_feature_table, normalize_algorithm, standardize_rt_columns_for_display
 
 
 def _get_runner(algo: str):
     """Return the pipeline function for an algorithm without importing all runners upfront."""
 
-    algo = algo.strip().lower()
+    algo = normalize_algorithm(algo)
     mapping = {
         "xcms": ("lipidbench.runners.run_xcms", "run_xcms_pipeline"),
-        "ms-dial": ("lipidbench.runners.run_msdial", "run_msdial_pipeline"),
+        "msdial": ("lipidbench.runners.run_msdial", "run_msdial_pipeline"),
         "pyopenms": ("lipidbench.runners.run_pyopenms", "run_pyopenms_pipeline"),
         "asari": ("lipidbench.runners.run_asari", "run_asari_pipeline"),
     }
@@ -26,7 +26,7 @@ def _get_runner(algo: str):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="LipidBench algorithm runner")
+    parser = argparse.ArgumentParser(description="ChromaPeak LC-MS chromatographic peak workflow")
     parser.add_argument("--algo", default="asari,xcms,ms-dial,pyopenms", help="Algorithm(s) to run, comma-separated")
     parser.add_argument("--export-eic", action="store_true", help="Run EIC image export after each algorithm")
     parser.add_argument("--eic-mzml", type=Path, help="mzML file used for EIC export")
@@ -47,28 +47,30 @@ def _yaml_get_eic_export_cfg(config: dict) -> dict:
 
 
 def main():
-    config = load_config()
     args = parse_args()
+    config = load_config()
     eic_cfg = _yaml_get_eic_export_cfg(config)
     paths_cfg = config.get("paths", {}) if isinstance(config, dict) else {}
 
     do_export = bool(args.export_eic or bool(eic_cfg.get("enabled", False)))
 
-    eic_mzml = args.eic_mzml or (Path(eic_cfg["mzml"]).resolve() if eic_cfg.get("mzml") else None)
-    output_root = Path(paths_cfg.get("output_dir", "./Results")).resolve()
+    base_dir = get_base_dir()
+    eic_mzml = args.eic_mzml or (_resolve_path(base_dir, eic_cfg["mzml"]) if eic_cfg.get("mzml") else None)
+    output_root = _resolve_path(base_dir, paths_cfg.get("output_dir", "./Results"))
     eic_ppm = float(args.eic_ppm if args.eic_ppm is not None else eic_cfg.get("ppm", 10.0))
     eic_unit = str(args.eic_unit if args.eic_unit is not None else eic_cfg.get("unit", "ppm"))
     eic_method = str(args.eic_method if args.eic_method is not None else eic_cfg.get("method", "nearest"))
     eic_max_features = int(args.eic_max_features if args.eic_max_features is not None else eic_cfg.get("max_features", 200))
     eic_processes = int(args.eic_processes if args.eic_processes is not None else config.get("common_params", {}).get("n_workers", 1))
     eic_smooth_sigma = float(args.eic_smooth_sigma if args.eic_smooth_sigma is not None else eic_cfg.get("smooth_sigma", 0.0))
-    # 固定图像参数（深度学习输入一致性）
-    eic_window_min = 2.0
-    eic_image_width_px = 400
-    eic_image_height_px = 300
-    eic_image_dpi = 100
+    eic_window_min = float(eic_cfg.get("window_min", 2.0))
+    eic_image_width_px = int(eic_cfg.get("image_width_px", 480))
+    eic_image_height_px = int(eic_cfg.get("image_height_px", 480))
+    eic_image_dpi = int(eic_cfg.get("image_dpi", 150))
+    if do_export and min(eic_window_min, eic_image_width_px, eic_image_height_px, eic_image_dpi) <= 0:
+        raise ValueError("EIC window, image dimensions, and DPI must be positive")
 
-    algo_list = [a.strip().lower() for a in args.algo.split(",") if a.strip()]
+    algo_list = [normalize_algorithm(a) for a in args.algo.split(",") if a.strip()]
     for algo in algo_list:
         runner = _get_runner(algo)
         runner(config)
@@ -83,7 +85,12 @@ def main():
             try:
                 from lipidbench.eic.extract_eic_pyopenms import build as build_eic
 
-                feature_path = find_feature_table(output_root, algo)
+                output_keys = {"xcms": "xcms_output", "pyopenms": "pyopenms_output",
+                               "asari": "asari_output", "msdial": "ms_dial_output"}
+                algorithm_output = paths_cfg.get(output_keys[algo], output_root / algo)
+                if algo == "msdial":
+                    algorithm_output = config.get("parameters", {}).get("msdial", {}).get("output_dir") or algorithm_output
+                feature_path = find_feature_table(_resolve_path(base_dir, algorithm_output), algo)
                 df_raw = load_feature_table(feature_path, algo)
                 df = standardize_rt_columns_for_display(df_raw, algo)
                 if "RT" not in df.columns:

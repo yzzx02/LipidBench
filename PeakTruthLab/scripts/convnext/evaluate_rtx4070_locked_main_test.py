@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 import numpy as np
 import pandas as pd
@@ -20,7 +28,7 @@ from run_rtx4070_fusion_experiment import (
     seed_worker,
     write_csv,
 )
-from train_convnext_fusion import AttrScaler, FusionModel
+from candidate_components import AttrScaler, FusionModel
 
 
 RUNS = [
@@ -130,10 +138,6 @@ def main(args: argparse.Namespace) -> None:
             dropout=float(config["dropout"]),
             pretrained=False,
             vision_backbone=config["vision_backbone"],
-            lwga_depth=int(config["lwga_depth"]),
-            lwga_groups=int(config["lwga_groups"]),
-            lwga_mlp_ratio=float(config["lwga_mlp_ratio"]),
-            lwga_dropout=float(config["lwga_dropout"]),
             model_mode=config["model_mode"],
         ).to(device)
         checkpoint_path = source / "best_model.pth"
@@ -196,12 +200,12 @@ def main(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test-csv", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\splits\test.csv")
-    parser.add_argument("--test-lock", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\splits\LOCKED_TEST_MANIFEST.sha256")
-    parser.add_argument("--image-root", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814")
-    parser.add_argument("--run-root", default=r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\main_ablation\seed_20260814")
-    parser.add_argument("--override", default=r"D:\CODE\LipidBench\PeakTruthLab\configs\rtx4070_concat_override_20260815.json")
-    parser.add_argument("--output", default=r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\main_test_single_use_20260815")
+    parser.add_argument("--test-csv", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/test.csv"))
+    parser.add_argument("--test-lock", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/splits/LOCKED_TEST_MANIFEST.sha256"))
+    parser.add_argument("--image-root", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814"))
+    parser.add_argument("--run-root", default=str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/main_ablation/seed_20260814"))
+    parser.add_argument("--override", default=str(PROJECT_ROOT / "PeakTruthLab/configs/rtx4070_concat_override_20260815.json"))
+    parser.add_argument("--output", default=str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/main_test_single_use_20260815"))
     return parser.parse_args()
 
 

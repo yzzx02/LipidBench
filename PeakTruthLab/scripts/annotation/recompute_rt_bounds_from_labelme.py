@@ -21,7 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from lipidbench.utils.peak_attributes import (
-    LITERATURE_TOP_COLUMNS,
+    PEAK_ATTRIBUTE_COLUMNS,
     _compute_one_feature_attributes,
     _extract_trace,
     load_ms1_spectra,
@@ -729,7 +729,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
                 target_rtmin=float(new_rtmin),
                 target_rtmax=float(new_rtmax),
                 rt_tol_sec=float(args.rt_tol_sec),
-                include_literature_top=True,
+
             )
 
             upd = {
@@ -738,7 +738,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
             }
             if bool(args.update_rt_from_box_mid):
                 upd["RT"] = round(float(new_rt), 6)
-            for c in LITERATURE_TOP_COLUMNS:
+            for c in PEAK_ATTRIBUTE_COLUMNS:
                 upd[c] = attrs.get(c, np.nan)
             updates[int(idx)] = upd
 
@@ -818,7 +818,7 @@ def recompute_from_labelme(args: argparse.Namespace) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser("Recompute RTmin/RTmax from LabelMe rectangle boxes and recompute 13 attributes")
+    p = argparse.ArgumentParser("Recompute RTmin/RTmax from LabelMe rectangle boxes and recompute 16 attributes")
     p.add_argument("--input-csv", type=str, default="PeakTruthLab/datasets/feature_table_final_10000.csv")
     p.add_argument("--output-csv", type=str, default="PeakTruthLab/datasets/feature_table_final_10000.csv")
     p.add_argument("--report-csv", type=str, default="PeakTruthLab/results/rt_bounds_from_labelme_report.csv")

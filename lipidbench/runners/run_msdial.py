@@ -7,7 +7,7 @@ from lipidbench.utils.config_io import get_base_dir, _resolve_path
 def run_msdial_pipeline(config):
     msdial_params = config.get("parameters", {}).get("msdial", {})
     input_dir = msdial_params.get("input_dir", "")
-    output_dir = msdial_params.get("output_dir", "")
+    output_dir = msdial_params.get("output_dir") or config.get("paths", {}).get("ms_dial_output", "./results/msdial")
     if not input_dir:
         raise ValueError("Input directory must be specified in the configuration.")
 

@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from lipidbench.utils.peak_attributes import (
-    LITERATURE_TOP_COLUMNS,
+    PEAK_ATTRIBUTE_COLUMNS,
     _compute_one_feature_attributes,
     _extract_trace,
     load_ms1_spectra,
@@ -145,7 +145,7 @@ def recompute(args: argparse.Namespace) -> None:
                 target_rtmin=float(refined.rtmin),
                 target_rtmax=float(refined.rtmax),
                 rt_tol_sec=float(args.rt_tol_sec),
-                include_literature_top=True,
+
             )
 
             upd = {
@@ -158,7 +158,7 @@ def recompute(args: argparse.Namespace) -> None:
                 )
             ):
                 upd["RT"] = round(float(refined.apex_rt), 6)
-            for c in LITERATURE_TOP_COLUMNS:
+            for c in PEAK_ATTRIBUTE_COLUMNS:
                 upd[c] = attrs.get(c, np.nan)
             updates[int(idx)] = upd
 

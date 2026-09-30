@@ -1,3 +1,5 @@
 numpy==2.5.1
+pandas>=2.2,<3.1
+scikit-learn>=1.5,<1.9
 pillow==12.3.0
 PyYAML==6.0.3

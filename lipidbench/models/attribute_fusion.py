@@ -8,12 +8,12 @@ VALID_FUSION_MODES = {"image_only", "attr_only", "naive_concat", "gated_fusion"}
 
 
 class AttributeEncoder(nn.Module):
-    """Encode 13- or 15-dimensional seed attributes into a compact vector."""
+    """Encode the current 16 candidate attributes into a compact vector."""
 
     def __init__(self, attr_dim: int, *, hidden_dim: int = 64, dropout: float = 0.2) -> None:
         super().__init__()
-        if attr_dim <= 0:
-            raise ValueError(f"attr_dim must be positive, got {attr_dim}")
+        if attr_dim != 16:
+            raise ValueError(f"candidate attributes must have dimension 16, got {attr_dim}")
         if hidden_dim <= 0:
             raise ValueError(f"hidden_dim must be positive, got {hidden_dim}")
         if not 0.0 <= dropout < 1.0:
@@ -45,12 +45,12 @@ class GatedSeedFusionHead(nn.Module):
         *,
         roi_channels: int = 256,
         roi_output_size: int = 7,
-        attr_dim: int = 13,
+        attr_dim: int = 16,
         image_embedding_dim: int = 256,
         attr_embedding_dim: int = 64,
         fusion_hidden_dim: int = 256,
         dropout: float = 0.2,
-        mode: str = "gated_fusion",
+        mode: str = "naive_concat",
     ) -> None:
         super().__init__()
         mode = str(mode).strip().lower()

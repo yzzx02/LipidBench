@@ -160,7 +160,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--image-size", type=int, default=96)
-    parser.add_argument("--attr-dim", type=int, choices=[13, 15], default=13)
+    parser.set_defaults(attr_dim=16)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.image_size < 64:

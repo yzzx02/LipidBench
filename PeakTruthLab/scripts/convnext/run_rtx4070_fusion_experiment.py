@@ -26,7 +26,7 @@ from sklearn.metrics import average_precision_score, confusion_matrix, roc_auc_s
 from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader, Dataset
 
-from train_convnext_fusion import AttrScaler, FusionModel, build_attr_scaler_from_train_csv, build_eval_transform
+from candidate_components import AttrScaler, FusionModel, build_attr_scaler_from_train_csv, build_eval_transform
 
 
 ATTRS = ["SNR", "CV", "GS", "TPAS", "H2B", "ZZ", "DZZ", "PCC", "SKEW", "DENT", "DM", "ENT", "JAG", "SYM", "MOD", "EDGE"]
@@ -317,10 +317,6 @@ def train(args: argparse.Namespace) -> None:
         dropout=args.dropout,
         pretrained=not args.no_pretrained,
         vision_backbone=args.vision_backbone,
-        lwga_depth=args.lwga_depth,
-        lwga_groups=args.lwga_groups,
-        lwga_mlp_ratio=args.lwga_mlp_ratio,
-        lwga_dropout=args.lwga_dropout,
         model_mode=args.model_mode,
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -474,11 +470,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--amp", action="store_true")
     parser.add_argument("--require-cuda", action="store_true")
     parser.add_argument("--no-pretrained", action="store_true")
-    parser.add_argument("--vision-backbone", default="convnext_tiny", choices=["convnext_tiny", "lwga_convnext"])
-    parser.add_argument("--lwga-depth", type=int, default=2)
-    parser.add_argument("--lwga-groups", type=int, default=8)
-    parser.add_argument("--lwga-mlp-ratio", type=float, default=2.0)
-    parser.add_argument("--lwga-dropout", type=float, default=0.0)
+    parser.set_defaults(vision_backbone="convnext_tiny")
     parser.add_argument("--resume-checkpoint", default="")
     parser.add_argument("--verify-checkpoint-reload", action="store_true")
     return parser.parse_args()

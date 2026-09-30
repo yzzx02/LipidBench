@@ -18,7 +18,7 @@ def _target(boxes: list[list[float]]) -> dict[str, torch.Tensor]:
     }
 
 
-def _small_model(attr_dim: int = 13) -> PeakMultiTaskRCNN:
+def _small_model(attr_dim: int = 16) -> PeakMultiTaskRCNN:
     return PeakMultiTaskRCNN(
         attr_dim=attr_dim,
         pretrained=False,
@@ -68,8 +68,8 @@ def test_official_480_transform_preserves_image_and_box_coordinates() -> None:
     torch.testing.assert_close(resized_seed_box, seed_box)
 
 
-@pytest.mark.parametrize("attr_dim", [13, 15])
-def test_seed_fusion_supports_13_and_15_attributes(attr_dim: int) -> None:
+def test_candidate_fusion_supports_current_16_attributes() -> None:
+    attr_dim = 16
     head = GatedSeedFusionHead(attr_dim=attr_dim, mode="gated_fusion")
     roi_features = torch.randn(2, 256, 7, 7, requires_grad=True)
     attributes = torch.randn(2, attr_dim)
@@ -80,12 +80,12 @@ def test_seed_fusion_supports_13_and_15_attributes(attr_dim: int) -> None:
     assert roi_features.grad is not None
 
 
-def test_multitask_model_accepts_any_positive_attribute_dimension() -> None:
-    model = _small_model(attr_dim=7)
-    assert model.attr_dim == 7
+def test_multitask_model_requires_current_attribute_dimension() -> None:
+    model = _small_model()
+    assert model.attr_dim == 16
 
-    with pytest.raises(ValueError, match="positive integer"):
-        _small_model(attr_dim=0)
+    with pytest.raises(ValueError, match="dimension 16"):
+        _small_model(attr_dim=7)
 
 
 def test_multitask_model_requires_four_anchor_levels() -> None:
@@ -102,15 +102,15 @@ def test_multitask_model_requires_four_anchor_levels() -> None:
 
 @pytest.mark.parametrize("mode", ["image_only", "attr_only", "naive_concat", "gated_fusion"])
 def test_seed_fusion_modes_return_one_logit_per_seed(mode: str) -> None:
-    head = GatedSeedFusionHead(attr_dim=13, mode=mode)
-    logits = head(torch.randn(3, 256, 7, 7), torch.randn(3, 13))
+    head = GatedSeedFusionHead(attr_dim=16, mode=mode)
+    logits = head(torch.randn(3, 256, 7, 7), torch.randn(3, 16))
     assert logits.shape == (3,)
     assert torch.isfinite(logits).all()
 
 
 def test_multitask_train_backward_and_inference_share_one_backbone_forward() -> None:
     torch.manual_seed(7)
-    model = _small_model(attr_dim=13)
+    model = _small_model(attr_dim=16)
     images = [torch.rand(3, 64, 64) for _ in range(4)]
     targets = [
         _target([]),
@@ -125,7 +125,7 @@ def test_multitask_train_backward_and_inference_share_one_backbone_forward() -> 
         torch.tensor([[6.0, 4.0, 18.0, 60.0]]),
         torch.tensor([[4.0, 8.0, 16.0, 56.0]]),
     ]
-    attributes = torch.randn(4, 13)
+    attributes = torch.randn(4, 16)
     seed_labels = torch.tensor([0.0, 1.0, 1.0, 0.0])
 
     expected_feature_names = ("p2", "p3", "p4", "p5")

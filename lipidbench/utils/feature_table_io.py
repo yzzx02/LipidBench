@@ -6,6 +6,11 @@ from typing import Optional
 import pandas as pd
 
 
+def normalize_algorithm(algorithm: str) -> str:
+    name = algorithm.strip().lower()
+    return "msdial" if name in {"msdial", "ms-dial", "ms_dial"} else name
+
+
 def is_number_series(s: pd.Series) -> bool:
     return pd.api.types.is_numeric_dtype(s) or pd.to_numeric(s, errors="coerce").notna().any()
 
@@ -22,7 +27,7 @@ def load_feature_table(path: Path, algorithm: str) -> pd.DataFrame:
     suffix = path.suffix.lower()
     if suffix in (".xlsx", ".xls"):
         df = pd.read_excel(path)
-        if algorithm.strip().lower() == "msdial":
+        if normalize_algorithm(algorithm) == "msdial":
             column_map = {
                 "Precursor m/z": "mz",
                 "RT left(min)": "RTmin",
@@ -37,49 +42,47 @@ def load_feature_table(path: Path, algorithm: str) -> pd.DataFrame:
 
 
 def normalize_results_base_dir(results_dir: Path, algorithm: str) -> Path:
-    algo = algorithm.strip().lower()
+    algo = normalize_algorithm(algorithm)
     results_dir = results_dir.resolve()
-    if results_dir.name.lower() == algo:
+    if normalize_algorithm(results_dir.name) == algo:
         return results_dir.parent
     return results_dir
 
 
 def find_feature_table(results_dir: Path, algorithm: str) -> Path:
-    algo = algorithm.strip().lower()
+    algo = normalize_algorithm(algorithm)
     base = normalize_results_base_dir(results_dir, algo)
+    directories = list(dict.fromkeys((results_dir.resolve(), base / algo)))
 
     if algo == "xcms":
-        p = base / "xcms" / "xcms_features.csv"
-        if p.exists():
-            return p
-        raise FileNotFoundError(f"XCMS feature table not found: {p}")
+        for directory in directories:
+            p = directory / "xcms_features.csv"
+            if p.exists():
+                return p
+        raise FileNotFoundError(f"XCMS feature table not found under: {directories}")
 
     if algo == "pyopenms":
-        p = base / "pyopenms" / "pyopenms_features.csv"
-        if p.exists():
-            return p
-        raise FileNotFoundError(f"pyOpenMS feature table not found: {p}")
+        for directory in directories:
+            p = directory / "pyopenms_features.csv"
+            if p.exists():
+                return p
+        raise FileNotFoundError(f"pyOpenMS feature table not found under: {directories}")
 
     if algo == "asari":
-        preferred = base / "asari" / "preferred_Feature_table.csv"
-        full = base / "asari" / "full_Feature_table.csv"
-        if preferred.exists():
-            return preferred
-        if full.exists():
-            return full
-        raise FileNotFoundError(f"Asari feature table not found: {preferred} or {full}")
+        for filename in ("preferred_Feature_table.csv", "full_Feature_table.csv"):
+            for directory in directories:
+                p = directory / filename
+                if p.exists():
+                    return p
+        raise FileNotFoundError(f"Asari feature table not found under: {directories}")
 
     if algo == "msdial":
-        msdial_dir = base / "msdial"
-        if not msdial_dir.exists():
-            raise FileNotFoundError(f"MS-DIAL results dir not found: {msdial_dir}")
-        candidates = sorted(msdial_dir.glob("*_processed.csv"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if candidates:
-            return candidates[0]
-        xlsx = sorted(msdial_dir.glob("*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if xlsx:
-            return xlsx[0]
-        raise FileNotFoundError(f"MS-DIAL processed table not found under: {msdial_dir}")
+        directories = list(dict.fromkeys((*directories, base / "ms_dial", base / "ms-dial")))
+        for pattern in ("*_processed.csv", "*.xlsx"):
+            candidates = {p for directory in directories for p in directory.glob(pattern)}
+            if candidates:
+                return max(candidates, key=lambda p: (p.stat().st_mtime, str(p)))
+        raise FileNotFoundError(f"MS-DIAL processed table not found under: {directories}")
 
     raise ValueError(f"Unknown algorithm: {algorithm}")
 
@@ -134,7 +137,7 @@ def standardize_rt_columns_for_display(df: pd.DataFrame, algorithm: str) -> pd.D
 
 
 def suggest_peak_column(df: pd.DataFrame, algorithm: str) -> Optional[str]:
-    algo = algorithm.strip().lower()
+    algo = normalize_algorithm(algorithm)
     if algo == "asari" and "peak_area" in df.columns:
         return "peak_area"
     if algo == "pyopenms" and "intensity" in df.columns:
