@@ -4,6 +4,24 @@ Measured experiment: **2026-09-30**. Integration/transfer audit: **2026-10-06**.
 Based on merged PR #9 (`660ddbea5192f795f7236aedf0c2ffe1421eb572`). The project
 name, current 16 attributes and naive-concat defaults are retained.
 
+## Manuscript sections and figures
+
+The [Chinese methods/results draft](PAPER_SECTIONS_ZH.md) contains both evaluations,
+their measured conclusions, four tables, figure captions and evaluation limits:
+
+- 16 mzML × 1,000 jointly detected baseline features: actual RT-shift stability,
+  [Figure R1 PNG](figures/figure_R1_actual_rt_shift.png) / [PDF](figures/figure_R1_actual_rt_shift.pdf).
+- Four studies / 15 mzML / 473 matched human-positive peak instances: conditional
+  boundary precision, [Figure R2 PNG](figures/figure_R2_boundary_473.png) / [PDF](figures/figure_R2_boundary_473.pdf).
+
+[The full paired boundary table](paired_rerun_xcms_vs_model.csv),
+[632-candidate eligibility audit](boundary_632_eligibility.csv) and
+[overall/per-study summary](boundary_473_summary.csv) are included.
+Model matching in this cohort already required image-box IoU ≥0.5; its high
+boundary IoU is a conditional result, not an all-target recall estimate.
+[Asset hashes](paper_assets_manifest.json) and
+[numeric consistency checks](paper_results_audit.json) preserve traceability.
+
 ## Actual mzML RT translation
 
 16 original CommercialQstdPooled mzML, 1,000 features detected by both methods
@@ -77,7 +95,8 @@ manifests are committed here. The full per-peak tables, raw candidates/logs,
 freeze history and historical code for actual shifts, 490-target prior recovery
 and the four-study boundary comparison are in
 [the Release](https://github.com/yzzx02/LipidBench/releases/tag/chromapeak-rt-validation-20260930).
-All figures are omitted from the transfer payload.
+The historical Release transfer payload omits figures. The two main PNG/PDF
+figures are now committed alongside the manuscript draft.
 
 Use [the portable replay guide](../../scripts/rt_validation/README.md) on the new
 workstation. It verifies original input hashes, the exact historical checkpoint,
