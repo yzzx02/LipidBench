@@ -1,0 +1,37 @@
+{
+  "rt_shift": {
+    "n_features": 1000,
+    "n_files": 16,
+    "n_shifts": 7,
+    "n_methods": 2,
+    "n_prediction_records": 224000,
+    "baseline_both_recall_one": true,
+    "tables_generated_from_saved_summary": true
+  },
+  "boundary": {
+    "n_positive_candidates": 632,
+    "n_xcms_matched": 511,
+    "n_model_matched": 593,
+    "n_both_before_mapping": 485,
+    "n_paired": 473,
+    "n_boundary_sides_per_method": 946,
+    "n_files": 15,
+    "study_pair_counts": {
+      "ST001873": 144,
+      "ST002135": 110,
+      "ST003220": 97,
+      "ST003514": 122
+    },
+    "included_ids_match_paired_table": true,
+    "matches_committed_boundary_policy_statistics": true,
+    "model_match_condition": "existing locked test image-box IoU >= 0.5",
+    "not_an_all_target_recall_estimate": true,
+    "side_errors_above_0p8_min": {
+      "xcms": 7,
+      "model": 0
+    }
+  },
+  "figures_source_hashes_match": true,
+  "new_inference": false,
+  "inferential_significance_tests": false
+}

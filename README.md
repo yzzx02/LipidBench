@@ -96,7 +96,10 @@ The [2026-09-30 RT validation delivery](PeakTruthLab/final_delivery/rt_validatio
 contains inspectable summaries for 16 mzML files, 1,000 joint-baseline features
 and seven actual RT shifts. Complete tables, original inputs, the exact
 historical image-only checkpoint and a matching Windows R runtime are supplied
-as Release assets; figures are omitted. The
+as Release assets. The [Chinese methods/results draft and two main figures](PeakTruthLab/final_delivery/rt_validation_20260930/PAPER_SECTIONS_ZH.md)
+include both the actual-RT experiment and the separate 473-peak human-boundary
+comparison; PNG/PDF figures and paired boundary data are committed with the draft.
+The historical Release archives omit figures. The
 [portable replay guide](PeakTruthLab/scripts/rt_validation/README.md) includes
 RX 9070 XT preflight checks and comparison with the saved RTX4070 results.
 This experiment retains its historical model and does not replace the current
