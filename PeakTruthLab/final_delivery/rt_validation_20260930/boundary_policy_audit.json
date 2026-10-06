@@ -1,0 +1,11 @@
+{
+  "n_pairs": 473,
+  "n_files": 15,
+  "legacy_main_numeric_outputs_identical": true,
+  "legacy_main_equal_count": 473,
+  "policy": "unchanged main refiner default vs preexisting one-scan extension guard; no parameter search",
+  "scope": "exploratory, same 473 jointly matched manual-positive peaks from earlier conditional boundary study; not a new independent test",
+  "prediction_inputs": "raw EIC, original native XCMS m/z/apex/bounds only; human boundaries used after predictions",
+  "main_refiner_sha256": "8bd06cf1c63b2c6f90927a8ffc32a4f5e25d26d6661ed77c5a4c8eb5e3493eea",
+  "legacy_refiner_sha256": "53368a26c467390be281f968d80796d894613b16929f9b70ff85501a760bda1b"
+}

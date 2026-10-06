@@ -31,6 +31,19 @@ class BoundaryRefinementResult:
     oversized_shrink: bool
 
 
+@dataclass
+class GuardedBoundaryRefinementResult:
+    """Final continuous bounds plus the unmodified core diagnostic result."""
+    status: str
+    rtmin: float
+    rtmax: float
+    apex_rt: float
+    width_sec: float
+    scan_step_min: float
+    guard_applied: bool
+    refinement: BoundaryRefinementResult
+
+
 def _sanitize_trace(rt: np.ndarray, eic: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     rt_arr = np.asarray(rt, dtype=np.float64)
     y = np.asarray(eic, dtype=np.float64)
@@ -497,4 +510,47 @@ def refine_peak_boundaries(
         left_rebound_stop=bool(left_rebound),
         right_rebound_stop=bool(right_rebound),
         oversized_shrink=bool(oversized),
+    )
+
+
+def refine_peak_boundaries_guarded(
+    rt: np.ndarray,
+    eic: np.ndarray,
+    rt_hint: float,
+    *,
+    rtmin_hint: float,
+    rtmax_hint: float,
+    max_extension_scans: int = 1,
+    **refinement_options,
+) -> GuardedBoundaryRefinementResult:
+    """Refine, then cap outward extension relative to upstream bounds.
+
+    This explicit policy reproduces the one-scan guard used in the RT-prior
+    recovery experiment. It does not alter the original core API/defaults or
+    perform between-sample RT alignment. The cap uses the median MS1 interval;
+    returned bounds can lie between scans. A non-ok status requires QC rather
+    than accepting a clipped interval that excludes the selected apex.
+    """
+    if not np.isfinite(rtmin_hint) or not np.isfinite(rtmax_hint) or rtmin_hint >= rtmax_hint:
+        raise ValueError("guard requires finite, ordered upstream boundaries")
+    if not isinstance(max_extension_scans, (int, np.integer)) or max_extension_scans < 0:
+        raise ValueError("max_extension_scans must be a nonnegative integer")
+    result = refine_peak_boundaries(rt, eic, rt_hint, rtmin_hint=rtmin_hint,
+                                    rtmax_hint=rtmax_hint, **refinement_options)
+    rt_arr, _ = _sanitize_trace(rt, eic)
+    step = float(np.median(np.diff(rt_arr))) if rt_arr.size >= 2 else float("nan")
+    left, right = result.rtmin, result.rtmax
+    if result.status == "ok" and np.isfinite(step):
+        left = max(left, float(rtmin_hint) - max_extension_scans * step)
+        right = min(right, float(rtmax_hint) + max_extension_scans * step)
+    status = result.status
+    if status == "ok" and left >= right:
+        status = "guard_no_overlap"
+    elif status == "ok" and not left <= result.apex_rt <= right:
+        status = "guard_apex_outside"
+    return GuardedBoundaryRefinementResult(
+        status=status, rtmin=left, rtmax=right, apex_rt=result.apex_rt,
+        width_sec=max(right - left, 0.0) * 60.0, scan_step_min=step,
+        guard_applied=left != result.rtmin or right != result.rtmax,
+        refinement=result,
     )

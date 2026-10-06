@@ -1,0 +1,5 @@
+# Install the matching ROCm/CUDA torch + torchvision pair separately first.
+-r requirements-peak-common.txt
+matplotlib>=3.8,<4
+pyopenms>=3.3,<4
+scipy>=1.11,<2
