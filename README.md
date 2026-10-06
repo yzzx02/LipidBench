@@ -89,3 +89,16 @@ Training and locked evaluation entry points are documented in `PeakTruthLab/READ
 - `tests/`: unit and interface tests
 
 Large mzML files, images, model weights, and full experiment outputs are distributed as GitHub Release assets rather than committed to Git history.
+
+## RT validation and workstation transfer
+
+The [2026-09-30 RT validation delivery](PeakTruthLab/final_delivery/rt_validation_20260930/README.md)
+contains inspectable summaries for 16 mzML files, 1,000 joint-baseline features
+and seven actual RT shifts. Complete tables, original inputs, the exact
+historical image-only checkpoint and a matching Windows R runtime are supplied
+as Release assets; figures are omitted. The
+[portable replay guide](PeakTruthLab/scripts/rt_validation/README.md) includes
+RX 9070 XT preflight checks and comparison with the saved RTX4070 results.
+This experiment retains its historical model and does not replace the current
+16-attribute naive-concat default. Its measured result is similar stability for
+both methods, with XCMS slightly better on the selected cohort.

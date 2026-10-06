@@ -1,0 +1,26 @@
+[
+  {
+    "name": "ChromaPeak_RT_complete_results_20260930.zip",
+    "bytes": 118848166,
+    "sha256": "22ddb4320be4d1f34122288ce921e8d7fdd14963bdf0bb27a7bb5425c9d8f38e",
+    "zip_crc_pass": true
+  },
+  {
+    "name": "ChromaPeak_RT_mzml16_inputs.zip",
+    "bytes": 107486148,
+    "sha256": "066790cd2fdd0b74788bedc278e9dbcbaff8cdaf6c33856d9fbe4524749b7351",
+    "zip_crc_pass": true
+  },
+  {
+    "name": "ChromaPeak_RT_image_only_checkpoint_20260907.zip",
+    "bytes": 539728430,
+    "sha256": "26f079ba7f147f43f070605e0399b861bff1a19da66642df689ff3072b3aa0b9",
+    "zip_crc_pass": true
+  },
+  {
+    "name": "ChromaPeak_RT_R461_xcms4101_windows.zip",
+    "bytes": 337570006,
+    "sha256": "7204f905d828ad8f3be9b305729b57d5175c6968f36a758a266986e85fb12c5c",
+    "zip_crc_pass": true
+  }
+]

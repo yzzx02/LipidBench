@@ -55,6 +55,8 @@ models/
 !/requirements-dev.txt
 !/requirements-peak-common.txt
 !/requirements-peak-nvidia-cu128.txt
+!/requirements-rt-validation.txt
+work/rt_validation/
 
 # Review workbooks are local deliverables, not runtime inputs.
 *.xlsx

@@ -1,0 +1,61 @@
+{
+  "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\joint_ablation_20260907_bs16_ep30\\image_only\\training\\best_detection.pt",
+  "checkpoint_sha256": "374f81705352875890ee26f8daec8334162644e209ddec60f5de51bbf3b6c695",
+  "model_info": {
+    "checkpoint": "D:\\CODE\\LipidBench\\PeakTruthLab\\results\\joint_ablation_20260907_bs16_ep30\\image_only\\training\\best_detection.pt",
+    "epoch": 22,
+    "fusion_mode": "image_only",
+    "training_task": "joint",
+    "validation_metrics_at_save": {
+      "samples": 1982,
+      "detection": {
+        "score_threshold": 0.5,
+        "iou_threshold": 0.5,
+        "true_positive": 1695,
+        "false_positive": 246,
+        "false_negative": 184,
+        "precision": 0.8732612055641422,
+        "recall": 0.902075572112826,
+        "f1": 0.887434554973822,
+        "matched_mean_iou": 0.8797035261593034,
+        "matched_median_iou": 0.9122191667556763,
+        "matched_coordinate_mae_px": 2.4367913260220777,
+        "predictions_per_image": 0.979313824419778
+      },
+      "seed": {
+        "true_positive": 1067,
+        "false_positive": 29,
+        "false_negative": 41,
+        "true_negative": 845,
+        "accuracy": 0.9646821392532795,
+        "precision": 0.9735401459854015,
+        "recall": 0.9629963898916968,
+        "f1": 0.9682395644283122,
+        "specificity": 0.9668192219679634,
+        "balanced_accuracy": 0.9649078059298302,
+        "auroc": 0.9921762055035563,
+        "average_precision": 0.9910806698899564,
+        "bce": 0.22963783144950867,
+        "brier": 0.0319892019033432,
+        "ece_10_bin": 0.031510807400875654
+      }
+    }
+  },
+  "shift": 0.0,
+  "n_input_features": 1967,
+  "eic_window_min": 2,
+  "eic_method": "nearest",
+  "eic_ppm": 10,
+  "score_threshold": 0.5,
+  "candidate_rule": "nearest candidate raw-EIC apex to unchanged reference RT; confidence tie break",
+  "input_feature_table_sha256": "50a2d3648a2c5d2f7dcb0a6319bec11a7d98e11ac94f29def0f4d858ab6c670a",
+  "prior": "unchanged frozen reference m/z and RT for all shifts",
+  "area": "project _seed_eic_diagnostics; intensity*seconds; trapezoid after local 20th-percentile baseline subtraction",
+  "rt_correction": false,
+  "retrained": false,
+  "shift_specific_tuning": false,
+  "batch_eic_acceleration": "same existing nearest-centroid 10ppm rule; five traces per shifted file checked for exact equality to _extract_trace",
+  "final_reference_feature_table_sha256": "bc1c706c9d30bf7b9c62a07efeb2d7902d9e08492b7f722592c0a11e9febf6e6",
+  "final_baseline_references_sha256": "eeb03891a698eecd1b0a18d7696c250fd45433651577350b22dd0e49362b4668",
+  "freeze_history": "original 998 unchanged; 2 added baseline references frozen before their own nonzero prediction; see initial_freeze_and_extension_history.zip"
+}

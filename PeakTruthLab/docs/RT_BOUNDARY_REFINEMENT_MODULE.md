@@ -106,3 +106,44 @@ python PeakTruthLab/scripts/annotation/recompute_rt_bounds_and_attrs.py \
 
 ## Key Rule
 Training and inference must use the same boundary refinement policy. Otherwise the image branch and attribute branch will see different data distributions.
+
+## Measured RT reference audit (2026-10-06)
+
+The earlier descriptions above explain the design intent; they are not evidence
+that the unrestricted refiner always produces accurate boundaries. On the 473
+jointly matched manual-positive peaks used in the earlier four-study comparison,
+the pre-PR #9 and current core give identical normal-trace bounds. Their median
+absolute boundary-side error is 0.470 min, compared with 0.066 min for fresh
+native XCMS. The observed core width is often too large.
+
+The prior-recovery experiment's existing one-scan extension cap reduces this
+median error to 0.057 min and raises median IoU from 0.240 to 0.620. This is an
+exploratory comparison on a selected paired cohort; it is not an independent
+test or a general optimality claim. The cap also depends on the upstream bounds
+and cannot fix every upstream error.
+
+Use the explicit `refine_peak_boundaries_guarded` helper for new reference
+construction when upstream bounds have been checked:
+
+```python
+from lipidbench.utils.rt_boundary_refiner import refine_peak_boundaries_guarded
+result = refine_peak_boundaries_guarded(
+    rt, eic, candidate_rt, rtmin_hint=xcms_left, rtmax_hint=xcms_right,
+    max_extension_scans=1,
+)
+if result.status != "ok":
+    # Exclude from an automatic reference or send for visual review.
+    ...
+```
+
+The wrapper preserves core diagnostics in `result.refinement`; final bounds
+may lie between scans. Seventeen of the 473 capped intervals exclude the core
+apex and require QC. Existing `refine_peak_boundaries` defaults remain unchanged
+so released trained-model preprocessing is not silently altered. Reintegrate
+the final accepted bounds with the existing area code, and freeze them before
+prediction. Manually annotated gold boundaries should remain a separate source.
+
+This module corrects **within-trace peak boundaries**, not between-file RT
+alignment. The 16-file actual-RT experiment uses native XCMS boundaries/areas
+and performs no RT correction; its saved results have not been changed by this
+new explicit wrapper. See [the replay guide](../scripts/rt_validation/README.md).

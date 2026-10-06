@@ -1,0 +1,17 @@
+{
+  "n_features": 1000,
+  "n_files": 16,
+  "n_records": 224000,
+  "n_baseline_records": 32000,
+  "both_methods_baseline_recall_one": true,
+  "frozen_hashes_pass": true,
+  "reference_priors_unchanged": true,
+  "nonzero_results_complete": true,
+  "recall_apex_tolerance_sec": 10,
+  "correct_requires_boundary_contains_expected_apex": true,
+  "area_error_summary_population": "all found selected candidates, including wrongly selected peaks; missing candidates are NaN; correct-only summaries also saved",
+  "accurate_quantification_denominator": "all true feature x file targets; strictly <20 percent",
+  "no_rt_correction": true,
+  "no_gap_filling": true,
+  "no_retraining_or_shift_specific_tuning": true
+}
