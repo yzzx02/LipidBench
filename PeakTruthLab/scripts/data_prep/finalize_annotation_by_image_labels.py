@@ -21,7 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from lipidbench.utils.peak_attributes import (  # noqa: E402
-    LITERATURE_TOP_COLUMNS,
+    PEAK_ATTRIBUTE_COLUMNS,
     _compute_one_feature_attributes,
     _extract_trace,
     load_ms1_spectra,
@@ -163,7 +163,7 @@ def _recompute_attrs_with_bounds(
         target_rtmin=float(rtmin),
         target_rtmax=float(rtmax),
         rt_tol_sec=float(rt_tol_sec),
-        include_literature_top=True,
+
     )
 
 
@@ -493,7 +493,7 @@ def finalize(args: argparse.Namespace) -> None:
             upd = {"is_true_peak": new_label}
             if source_path != source_path_raw:
                 upd["source_path"] = str(source_path)
-            for c in LITERATURE_TOP_COLUMNS:
+            for c in PEAK_ATTRIBUTE_COLUMNS:
                 upd[c] = attrs.get(c, np.nan)
             updates[idx] = upd
             report_rows.append(
@@ -571,7 +571,7 @@ def finalize(args: argparse.Namespace) -> None:
                     rt_tol_sec=float(args.rt_tol_sec),
                 )
                 upd = {"is_true_peak": new_label}
-                for c in LITERATURE_TOP_COLUMNS:
+                for c in PEAK_ATTRIBUTE_COLUMNS:
                     upd[c] = attrs.get(c, np.nan)
                 updates[idx] = upd
                 if source_path != source_path_raw:
@@ -754,7 +754,7 @@ def finalize(args: argparse.Namespace) -> None:
         }
         if source_path != source_path_raw:
             upd["source_path"] = str(source_path)
-        for c in LITERATURE_TOP_COLUMNS:
+        for c in PEAK_ATTRIBUTE_COLUMNS:
             upd[c] = attrs.get(c, np.nan)
         updates[idx] = upd
 

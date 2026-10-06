@@ -13,7 +13,6 @@
   SNR,CV,GS,TPAS,H2B,ZZ,DZZ,PCC,SKEW,DENT,DM,ENT,JAG,SYM,MOD,EDGE
   ```
 
-- 不再安排任何 13 属性实验。
 - 主实验先完成四种固定模式的消融；只有验证集确认 `Concat` 最佳后，才继续完整留域实验。
 - 主实验的 test 一经生成立即锁定，绝不参与模型选择、阈值选择、早停、插补、标准化或超参数调整。
 
@@ -47,17 +46,11 @@
 4. 旧数据预计约有 15317 个可用 Seed 图像，但以本机最终标注和自检结果为准。
 5. 不修改、不移动、不覆盖旧最终目录；合并产物写到新的版本目录。
 
-## 3. 统一到 16 属性并合并
+## 3. 核验 16 项属性输入并合并
 
-若旧最终表仍只有 13 属性：
+合并前确认两个批次均包含完整的 16 项属性列。保留最终人工标注框和原始缺失状态。候选峰的 EIC 窗口与峰顶定义必须遵循相同的提取规则；预处理统计量仅在对应 Train 折上拟合。
 
-- 原 13 属性的算法和值保持不变；
-- 仅补算 `SYM`、`MOD`、`EDGE`；
-- EIC extraction、Seed window 和 apex/seed index `A` 的定义与现有流程一致；
-- 人工修改后的 x 边界是权威边界，不得再次运行自动边界精修或找谷底算法去覆盖人工结果；
-- 原始表中的缺失状态应保留，模型用插补器只能在每一训练折的 train 上拟合。
-
-建议新目录：
+输出目录：
 
 ```text
 PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814
@@ -114,7 +107,7 @@ PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814
 | Weight decay | `1e-4` |
 | 最大 epoch | 30 |
 | Random seed | `20260814` |
-| 二分类最佳 checkpoint | 最高 `val_auc`，与现有 `train_convnext_fusion.py` 一致 |
+| 二分类最佳 checkpoint | 最高 `val_auc`，与现有 `run_rtx4070_fusion_experiment.py` 一致 |
 
 此外，预训练权重、数据增强、dropout、loss、检测 head、Seed head、阈值策略等，沿用上一次已冻结的最终实验设置，不在本轮随意重调。若需变更，必须先记录原因，并对所有比较模式一视同仁。
 
@@ -205,7 +198,7 @@ Concat-16 通过上一节门槛后，执行 Leave-One-Dataset/Domain-Out。这�
 ```text
 保护并确认 4070 本机旧最终数据
 → 下载并校验新增 4500 张 v2
-→ 新目录合并、去重、冲突审计、补齐 16 属性
+→ 核验 16 属性，在新目录合并、去重并审计冲突
 → 生成并锁定 main 80/10/10 split
 → batch 16 / 1 epoch smoke test
 → 从头训练四种固定消融模式

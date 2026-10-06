@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import math
 from collections import Counter
 from pathlib import Path, PurePosixPath
@@ -167,8 +168,8 @@ def main(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-root", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814")
-    parser.add_argument("--old-root", default=r"D:\CODE\LipidBench\PeakTruthLab\results\paper_final_reviewed_20260725\dataset_release\PeakTruthLab-dataset-v2")
+    parser.add_argument("--dataset-root", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814"))
+    parser.add_argument("--old-root", default=str(PROJECT_ROOT / "PeakTruthLab/results/paper_final_reviewed_20260725/dataset_release/PeakTruthLab-dataset-v2"))
     parser.add_argument("--new-root", default=r"D:\CODE\downloads\PeakTruthLab_RTX4070_20260814\extracted\manual_negative_4500_v2_staging")
     parser.add_argument("--release-zip", default=r"D:\CODE\downloads\PeakTruthLab_RTX4070_20260814\PeakTruthLab_manual_negative_4500_v2_20260814.zip")
     return parser.parse_args()

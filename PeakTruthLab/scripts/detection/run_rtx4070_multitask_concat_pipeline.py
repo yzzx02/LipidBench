@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import csv
 import json
 import statistics
@@ -9,6 +10,13 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 
 def read_json(path: Path) -> Any:
@@ -377,27 +385,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--manifest-root",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\detection_manifests_16attrs_20260815"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/detection_manifests_16attrs_20260815")),
     )
     parser.add_argument(
         "--image-root",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814")),
     )
     parser.add_argument(
         "--result-root",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\multitask_concat_detection_seed_20260816_bs16_ep30"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/multitask_concat_detection_seed_20260816_bs16_ep30")),
     )
     parser.add_argument(
         "--train-script",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\scripts\detection\run_rtx4070_multitask_fusion_experiment.py"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/scripts/detection/run_rtx4070_multitask_fusion_experiment.py")),
     )
     parser.add_argument(
         "--eval-script",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\scripts\detection\evaluate_rtx4070_multitask_locked_target.py"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/scripts/detection/evaluate_rtx4070_multitask_locked_target.py")),
     )
     return parser.parse_args()
 

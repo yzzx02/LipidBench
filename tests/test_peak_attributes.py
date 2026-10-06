@@ -5,19 +5,18 @@ import pytest
 from scipy import signal
 
 from lipidbench.utils.peak_attributes import (
-    ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS,
-    LITERATURE_TOP_COLUMNS,
     PEAK_ATTRIBUTE_COLUMNS,
     _compute_additional_peak_features,
-    _compute_literature_top_features,
+    _compute_peak_features,
     _moving_average3,
 )
 
 
-def test_attribute_column_order_appends_three_without_reordering_original_thirteen() -> None:
-    assert PEAK_ATTRIBUTE_COLUMNS[:13] == LITERATURE_TOP_COLUMNS
-    assert PEAK_ATTRIBUTE_COLUMNS[13:] == ADDITIONAL_PEAK_ATTRIBUTE_COLUMNS
-    assert PEAK_ATTRIBUTE_COLUMNS == [*LITERATURE_TOP_COLUMNS, "SYM", "MOD", "EDGE"]
+def test_attribute_column_order_matches_current_model() -> None:
+    from lipidbench.data import BASE_ATTRIBUTE_NAMES
+
+    assert PEAK_ATTRIBUTE_COLUMNS == list(BASE_ATTRIBUTE_NAMES)
+    assert len(PEAK_ATTRIBUTE_COLUMNS) == 16
 
 
 def test_symmetric_profile_has_unit_symmetry_and_low_edges() -> None:
@@ -60,14 +59,13 @@ def test_edge_ratio_is_continuous_and_not_clipped_to_one() -> None:
     assert attrs["EDGE"] == pytest.approx(2.0)
 
 
-def test_original_thirteen_calculation_is_independent_of_extension() -> None:
+def test_complete_candidate_attributes_preserve_signal_metrics() -> None:
     rt = np.arange(7, dtype=np.float64)
     x = np.asarray([0.0, 1.0, 4.0, 10.0, 4.0, 1.0, 0.0])
-    before = _compute_literature_top_features(rt, x, apex_idx=3)
-    _compute_additional_peak_features(x, apex_idx=3)
-    after = _compute_literature_top_features(rt, x, apex_idx=3)
-    for name in LITERATURE_TOP_COLUMNS:
-        if np.isnan(before[name]):
-            assert np.isnan(after[name])
-        else:
-            assert after[name] == pytest.approx(before[name], nan_ok=True)
+    attributes = _compute_peak_features(rt, x, apex_idx=3)
+    assert set(attributes) == set(PEAK_ATTRIBUTE_COLUMNS)
+    assert attributes["SNR"] == pytest.approx((x[3] - x.mean()) / x.std())
+    assert attributes["CV"] == pytest.approx(x.std() / x.mean())
+    assert attributes["SYM"] == pytest.approx(1.0)
+    assert attributes["MOD"] == pytest.approx(0.0)
+    assert attributes["EDGE"] == pytest.approx(0.1)

@@ -3,7 +3,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 import pandas as pd
 from sklearn.model_selection import StratifiedGroupKFold
@@ -192,8 +200,8 @@ def main(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--master-csv", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\tables\seed_master_16attrs.csv")
-    parser.add_argument("--output", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\lodo_seed_20260814")
+    parser.add_argument("--master-csv", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/tables/seed_master_16attrs.csv"))
+    parser.add_argument("--output", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/lodo_seed_20260814"))
     parser.add_argument("--seed", type=int, default=20260814)
     return parser.parse_args()
 

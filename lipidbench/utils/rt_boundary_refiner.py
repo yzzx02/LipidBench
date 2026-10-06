@@ -38,6 +38,8 @@ def _sanitize_trace(rt: np.ndarray, eic: np.ndarray) -> tuple[np.ndarray, np.nda
         return np.asarray([], dtype=np.float64), np.asarray([], dtype=np.float64)
     if rt_arr.size == 0:
         return rt_arr, y
+    if not np.isfinite(rt_arr).all() or np.any(np.diff(rt_arr) <= 0):
+        raise ValueError("retention times must be finite and strictly increasing")
     y = np.where(np.isfinite(y), y, 0.0)
     y[y < 0] = 0.0
     return rt_arr, y
@@ -60,7 +62,10 @@ def _lwma_smooth(y: np.ndarray, window_scans: int, passes: int) -> np.ndarray:
     kernel = _make_triangular_kernel(window_scans)
     out = np.asarray(y, dtype=np.float64)
     for _ in range(max(1, int(passes))):
-        out = np.convolve(out, kernel, mode="same")
+        # NumPy's 'same' returns max(signal, kernel) samples. Crop the full
+        # convolution explicitly so short traces stay aligned with their RTs.
+        offset = (kernel.size - 1) // 2
+        out = np.convolve(out, kernel, mode="full")[offset : offset + out.size]
     return out
 
 
@@ -304,6 +309,8 @@ def refine_peak_boundaries(
     rise_patience: int = 2,
     oversize_factor: float = 1.8,
 ) -> BoundaryRefinementResult:
+    if not np.isfinite(rt_hint):
+        raise ValueError("rt_hint must be finite")
     rt_arr, y_raw = _sanitize_trace(rt, eic)
     old_rt_in_bounds = False
     if rtmin_hint is not None and rtmax_hint is not None and np.isfinite(rtmin_hint) and np.isfinite(rtmax_hint):

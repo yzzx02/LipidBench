@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
+import math
 from typing import Any
 
 import torch
@@ -42,14 +43,12 @@ def resize_seed_boxes(
 
 
 class PeakMultiTaskRCNN(nn.Module):
-    """Shared ConvNeXt-FPN detector with candidate-specific seed validation.
+    """Shared ConvNeXt-FPN detector with candidate-specific validation.
 
     The full-window Faster R-CNN branch detects only ``True_Peak`` foreground
     objects (class 1; class 0 is implicit background). The seed branch pools
     one externally supplied candidate box per image from the *same* FPN
-    features, then optionally fuses an arbitrary positive-dimensional
-    attribute vector. Current experiments compare 13- and 15-dimensional
-    variants.
+    features, then optionally fuses the current 16-attribute vector.
     """
 
     def __init__(
@@ -57,7 +56,7 @@ class PeakMultiTaskRCNN(nn.Module):
         *,
         anchor_sizes: Sequence[Sequence[int]],
         anchor_aspect_ratios: Sequence[Sequence[float]],
-        attr_dim: int = 13,
+        attr_dim: int = 16,
         num_classes: int = 2,
         pretrained: bool = True,
         fpn_out_channels: int = 256,
@@ -81,7 +80,7 @@ class PeakMultiTaskRCNN(nn.Module):
         attr_embedding_dim: int = 64,
         fusion_hidden_dim: int = 256,
         fusion_dropout: float = 0.2,
-        fusion_mode: str = "gated_fusion",
+        fusion_mode: str = "naive_concat",
         seed_loss_type: str = "weighted_bce",
         seed_loss_weight: float = 1.0,
         seed_pos_weight: float | None = None,
@@ -93,8 +92,8 @@ class PeakMultiTaskRCNN(nn.Module):
             raise ValueError(
                 "PeakMultiTaskRCNN fixes num_classes=2: background plus True_Peak foreground"
             )
-        if attr_dim <= 0:
-            raise ValueError(f"attr_dim must be a positive integer, got {attr_dim}")
+        if attr_dim != 16:
+            raise ValueError(f"candidate attributes must have dimension 16, got {attr_dim}")
         if seed_loss_weight < 0.0:
             raise ValueError(f"seed_loss_weight must be non-negative, got {seed_loss_weight}")
         if len(anchor_sizes) != 4 or len(anchor_aspect_ratios) != 4:
@@ -104,8 +103,11 @@ class PeakMultiTaskRCNN(nn.Module):
         ratios = tuple(tuple(float(v) for v in level) for level in anchor_aspect_ratios)
         if any(not level or any(v <= 0 for v in level) for level in sizes):
             raise ValueError("every anchor size level must contain positive values")
-        if any(not level or any(v <= 0 for v in level) for level in ratios):
-            raise ValueError("every anchor aspect-ratio level must contain positive values")
+        if any(not level or any(not math.isfinite(v) or v <= 0 for v in level) for level in ratios):
+            raise ValueError("every anchor aspect-ratio level must contain finite positive values")
+        anchor_counts = {len(size) * len(ratio) for size, ratio in zip(sizes, ratios, strict=True)}
+        if len(anchor_counts) != 1:
+            raise ValueError("each FPN level must define the same number of anchors for the shared RPN head")
 
         backbone = ConvNeXtTinyFPNBackbone(
             pretrained=pretrained,
@@ -187,7 +189,7 @@ class PeakMultiTaskRCNN(nn.Module):
         return cls(
             anchor_sizes=model_cfg["anchor_sizes"],
             anchor_aspect_ratios=model_cfg["anchor_aspect_ratios"],
-            attr_dim=int(model_cfg.get("attr_dim", 13)),
+            attr_dim=int(model_cfg.get("attr_dim", 16)),
             num_classes=int(model_cfg.get("num_classes", 2)),
             pretrained=configured_pretrained if pretrained is None else bool(pretrained),
             fpn_out_channels=int(model_cfg.get("fpn_out_channels", 256)),
@@ -211,7 +213,7 @@ class PeakMultiTaskRCNN(nn.Module):
             attr_embedding_dim=int(model_cfg.get("attr_embedding_dim", 64)),
             fusion_hidden_dim=int(model_cfg.get("fusion_hidden_dim", 256)),
             fusion_dropout=float(model_cfg.get("fusion_dropout", 0.2)),
-            fusion_mode=str(model_cfg.get("fusion_mode", "gated_fusion")),
+            fusion_mode=str(model_cfg.get("fusion_mode", "naive_concat")),
             seed_loss_type=str(loss_cfg.get("seed_loss_type", "weighted_bce")),
             seed_loss_weight=float(loss_cfg.get("seed_loss_weight", 1.0)),
             seed_pos_weight=loss_cfg.get("seed_pos_weight"),
@@ -328,7 +330,7 @@ class PeakMultiTaskRCNN(nn.Module):
         feature_device = next(iter(features.values())).device
         scaled_seed_boxes = [
             resize_seed_boxes(
-                box.to(device=feature_device),
+                box.to(device=feature_device, dtype=image_list.tensors.dtype),
                 original_size=old_size,
                 new_size=new_size,
             )

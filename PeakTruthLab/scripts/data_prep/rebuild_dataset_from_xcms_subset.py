@@ -173,7 +173,7 @@ def _compute_attrs(df_one: pd.DataFrame, mzml_path: Path, mz_tolerance: float) -
         tolerance_unit="ppm",
         method="nearest",
         rt_tol_sec=30.0,
-        include_literature_top=True,
+
     )
 
     attr_cols = [

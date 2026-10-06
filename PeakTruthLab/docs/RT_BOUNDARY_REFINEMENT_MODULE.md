@@ -52,7 +52,7 @@ The module in `lipidbench/utils/rt_boundary_refiner.py` is not a byte-for-byte r
 ## Recommended Usage
 ### Training-time preprocessing
 - Run the refinement module on all candidate features before final attribute calculation
-- Recompute the 13 peak attributes only after refined `RTmin/RTmax` are available
+- Recompute all 16 candidate attributes only after refined `RTmin/RTmax` are available
 - Default extraction tolerance is `15 ppm`, matching the current high-resolution MS setup
 
 Example:

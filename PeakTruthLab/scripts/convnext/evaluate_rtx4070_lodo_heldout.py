@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import os
 import hashlib
 import json
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 import torch
 from torch.utils.data import DataLoader
@@ -18,7 +26,7 @@ from run_rtx4070_fusion_experiment import (
     seed_worker,
     write_csv,
 )
-from train_convnext_fusion import AttrScaler, FusionModel
+from candidate_components import AttrScaler, FusionModel
 
 
 def sha256(path: Path) -> str:
@@ -97,10 +105,6 @@ def main(args: argparse.Namespace) -> None:
         dropout=float(config["dropout"]),
         pretrained=False,
         vision_backbone=config["vision_backbone"],
-        lwga_depth=int(config["lwga_depth"]),
-        lwga_groups=int(config["lwga_groups"]),
-        lwga_mlp_ratio=float(config["lwga_mlp_ratio"]),
-        lwga_dropout=float(config["lwga_dropout"]),
         model_mode="naive_concat",
     ).to(device)
     checkpoint_path = training_dir / "best_model.pth"
@@ -140,7 +144,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fold-dir", required=True)
     parser.add_argument("--training-dir", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--image-root", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814")
+    parser.add_argument("--image-root", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814"))
     return parser.parse_args()
 
 

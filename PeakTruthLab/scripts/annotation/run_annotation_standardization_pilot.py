@@ -1736,7 +1736,7 @@ def run(args: argparse.Namespace) -> None:
                     target_rtmin=new_left_rt,
                     target_rtmax=new_right_rt,
                     rt_tol_sec=30.0,
-                    include_literature_top=True,
+
                 )
                 if any(not np.isfinite(_safe_float(attrs.get(name))) for name in PEAK_ATTRIBUTE_COLUMNS):
                     peak_reasons.append("重新计算的16项属性含缺失值")

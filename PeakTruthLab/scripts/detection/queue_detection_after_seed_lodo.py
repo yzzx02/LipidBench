@@ -11,6 +11,13 @@ from pathlib import Path
 from typing import Any
 
 
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
+
+
 def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -107,22 +114,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--seed-lodo-state",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\lodo_concat_seed_20260814\PIPELINE_STATE.json"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/lodo_concat_seed_20260814/PIPELINE_STATE.json")),
     )
     parser.add_argument(
         "--detection-pipeline",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\scripts\detection\run_rtx4070_multitask_concat_pipeline.py"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/scripts/detection/run_rtx4070_multitask_concat_pipeline.py")),
     )
     parser.add_argument(
         "--queue-state",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\multitask_concat_detection_seed_20260815\QUEUE_STATE.json"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/multitask_concat_detection_seed_20260815/QUEUE_STATE.json")),
     )
     parser.add_argument(
         "--log-path",
         type=Path,
-        default=Path(r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\multitask_concat_detection_seed_20260815\queue_console.log"),
+        default=Path(str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/multitask_concat_detection_seed_20260815/queue_console.log")),
     )
     return parser.parse_args()
 

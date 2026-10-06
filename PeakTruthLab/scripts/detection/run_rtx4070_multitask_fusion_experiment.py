@@ -24,7 +24,9 @@ except ImportError:  # pragma: no cover - the training target is WSL/Linux
     fcntl = None
 
 PROJECT_ROOT = Path(
-    os.environ.get("LIPIDBENCH_PROJECT_ROOT", r"D:\CODE\LipidBench")
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
 ).resolve()
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -41,9 +43,9 @@ from lipidbench.data import (  # noqa: E402
 )
 from lipidbench.models import PeakMultiTaskRCNN  # noqa: E402
 
-from train_peak_multitask_smoke import (  # noqa: E402
-    _balanced_smoke_subset,
-    _move_batch,
+from lipidbench.data.training_utils import (  # noqa: E402
+    balanced_candidate_subset,
+    move_peak_batch_to_device,
 )
 
 
@@ -184,7 +186,7 @@ def _train_one_epoch(
             raw_batch["attributes"],
             raw_batch["attribute_masks"],
         ).to(device)
-        batch = _move_batch(raw_batch, device)
+        batch = move_peak_batch_to_device(raw_batch, device)
         group_start = (
             batch_index // gradient_accumulation_steps
         ) * gradient_accumulation_steps
@@ -381,7 +383,7 @@ def _evaluate(
             raw_batch["attributes"],
             raw_batch["attribute_masks"],
         ).to(device)
-        batch = _move_batch(raw_batch, device)
+        batch = move_peak_batch_to_device(raw_batch, device)
         with torch.amp.autocast(
             device_type=device.type,
             dtype=torch.float16,
@@ -678,7 +680,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     train_records_full = load_manifest_jsonl(args.train_manifest)
     if args.mode == "overfit":
-        train_records = _balanced_smoke_subset(
+        train_records = balanced_candidate_subset(
             train_records_full,
             args.train_limit,
             seed=args.seed,
@@ -687,12 +689,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     else:
         if args.val_manifest is None:
             raise ValueError("--val-manifest is required in pilot mode")
-        train_records = _balanced_smoke_subset(
+        train_records = balanced_candidate_subset(
             train_records_full,
             args.train_limit,
             seed=args.seed,
         )
-        validation_records = _balanced_smoke_subset(
+        validation_records = balanced_candidate_subset(
             load_manifest_jsonl(args.val_manifest),
             args.val_limit,
             seed=args.seed + 1,

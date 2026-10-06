@@ -3,7 +3,15 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 import numpy as np
 import pandas as pd
@@ -15,7 +23,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 
-REPO = Path(r"D:\CODE\LipidBench")
+REPO = PROJECT_ROOT
 DATASET = REPO / "PeakTruthLab" / "datasets" / "PeakTruthLab_final_merged_20260814"
 RUN_ROOT = REPO / "PeakTruthLab" / "results" / "rtx4070_final_merged_20260814" / "main_ablation" / "seed_20260814"
 OUTPUT = REPO / "PeakTruthLab" / "results" / "rtx4070_final_merged_20260814" / "sanity_audit_20260815"

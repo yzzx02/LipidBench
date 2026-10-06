@@ -1,6 +1,6 @@
 project:
-  name: "Lipidomics Algorithm Benchmark"
-  description: "Comparing XCMS, MS-DIAL, pyOpenMS, and Asari"
+  name: "ChromaPeak"
+  description: "LC-MS chromatographic peak detection and candidate validation"
 paths:
   input_dir: "./data/raw_mzML"
   output_dir: "./results"
@@ -50,8 +50,8 @@ eic_export:
   unit: 'ppm'
   ppm: 10.0
   window_min: 2.0
-  image_width_px: 400
-  image_height_px: 300
-  image_dpi: 100
+  image_width_px: 480
+  image_height_px: 480
+  image_dpi: 150
   max_features: 200
   smooth_sigma: 0.0

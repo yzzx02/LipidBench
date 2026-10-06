@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import argparse
+import os
 import csv
 import json
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 
 def read_json(path: Path):
@@ -189,11 +197,11 @@ def main(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--split-root", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814\lodo_seed_20260814")
-    parser.add_argument("--result-root", default=r"D:\CODE\LipidBench\PeakTruthLab\results\rtx4070_final_merged_20260814\lodo_concat_seed_20260814")
-    parser.add_argument("--image-root", default=r"D:\CODE\LipidBench\PeakTruthLab\datasets\PeakTruthLab_final_merged_20260814")
-    parser.add_argument("--train-script", default=r"D:\CODE\LipidBench\PeakTruthLab\scripts\convnext\run_rtx4070_fusion_experiment.py")
-    parser.add_argument("--eval-script", default=r"D:\CODE\LipidBench\PeakTruthLab\scripts\convnext\evaluate_rtx4070_lodo_heldout.py")
+    parser.add_argument("--split-root", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/lodo_seed_20260814"))
+    parser.add_argument("--result-root", default=str(PROJECT_ROOT / "PeakTruthLab/results/rtx4070_final_merged_20260814/lodo_concat_seed_20260814"))
+    parser.add_argument("--image-root", default=str(PROJECT_ROOT / "PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814"))
+    parser.add_argument("--train-script", default=str(PROJECT_ROOT / "PeakTruthLab/scripts/convnext/run_rtx4070_fusion_experiment.py"))
+    parser.add_argument("--eval-script", default=str(PROJECT_ROOT / "PeakTruthLab/scripts/convnext/evaluate_rtx4070_lodo_heldout.py"))
     return parser.parse_args()
 
 

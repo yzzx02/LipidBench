@@ -5,13 +5,22 @@ import bisect
 import csv
 import hashlib
 import json
+import os
 import math
 import random
 import shutil
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+
 from typing import Iterable
+
+
+PROJECT_ROOT = Path(
+    os.environ.get("CHROMAPEAK_PROJECT_ROOT")
+    or os.environ.get("LIPIDBENCH_PROJECT_ROOT")
+    or Path(__file__).resolve().parents[3]
+).resolve()
 
 import numpy as np
 import pandas as pd
@@ -869,7 +878,7 @@ def main(args: argparse.Namespace) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    repo = Path(r"D:\CODE\LipidBench")
+    repo = PROJECT_ROOT
     parser = argparse.ArgumentParser()
     parser.add_argument("--old-root", default=str(repo / "PeakTruthLab/results/paper_final_reviewed_20260725/dataset_release/PeakTruthLab-dataset-v2"))
     parser.add_argument("--old-seed-jobs", default=str(repo / "PeakTruthLab/datasets/rtx4070_attribute_handoff_20260814/old_final_seed_attribute_jobs.csv"))
