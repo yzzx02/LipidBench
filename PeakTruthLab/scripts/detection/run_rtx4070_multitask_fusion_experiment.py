@@ -42,6 +42,7 @@ from lipidbench.data import (  # noqa: E402
     load_manifest_jsonl,
 )
 from lipidbench.models import PeakMultiTaskRCNN  # noqa: E402
+from lipidbench.utils.local_paths import get_cache_root  # noqa: E402
 
 from lipidbench.data.training_utils import (  # noqa: E402
     balanced_candidate_subset,
@@ -586,7 +587,8 @@ def _run_with_process_lock(args: argparse.Namespace) -> dict[str, Any]:
     if fcntl is None:
         return run(args)
 
-    lock_path = PROJECT_ROOT / ".peak_fusion_training.lock"
+    lock_path = get_cache_root(PROJECT_ROOT) / "locks" / "peak_fusion_training.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
     lock_file = lock_path.open("a+", encoding="utf-8")
     try:
         try:

@@ -1,5 +1,6 @@
 import argparse
 import importlib
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -47,6 +48,10 @@ def _yaml_get_eic_export_cfg(config: dict) -> dict:
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "rescue-ms2":
+        from lipidbench.workflows.ms2_rescue_cli import main as rescue_main
+
+        return rescue_main(sys.argv[2:])
     args = parse_args()
     config = load_config()
     eic_cfg = _yaml_get_eic_export_cfg(config)

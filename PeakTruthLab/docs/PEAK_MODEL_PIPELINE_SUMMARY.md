@@ -37,4 +37,11 @@ Main preserves source proportions and keeps duplicate groups together; it is not
 
 Manifest loading, Dataset/collation, attribute preprocessing, real training, locked evaluation, EIC extraction, RT-boundary refinement, and signal integration utilities are implemented. The model returns image-coordinate boxes and candidate probabilities. A unified automated second stage that maps every predicted box to RT and recomputes its attributes and area is still a separate integration task.
 
+The MS2-guided rescue workflow now provides a targeted two-pass integration:
+identification table → MS1 EIC at precursor m/z and MS2 RT → detection → guarded
+boundary refinement → new candidate attributes → candidate classification →
+deduplicated peak export and counts. See `MS2_GUIDED_RESCUE.md`. It does not perform
+differential analysis, and it does not change the existing joint training/forward
+semantics or constitute a validated universal detector-to-quantification pipeline.
+
 For model details see `PEAK_MULTITASK_ARCHITECTURE.md`; for the current review and fixes see `PROJECT_REVIEW_20260930.md`. Earlier 10,000-image binary-only descriptions are superseded by this flow.

@@ -8,7 +8,8 @@ import sys
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = Path(os.environ.get('CHROMAPEAK_PROJECT_ROOT') or SCRIPT_DIR.parents[2]).resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
-WORK = Path(os.environ.get('CHROMAPEAK_RT_WORKDIR') or PROJECT_ROOT / 'work/rt_validation').resolve()
+from lipidbench.utils.local_paths import get_cache_root
+WORK = Path(os.environ.get('CHROMAPEAK_RT_WORKDIR') or get_cache_root(PROJECT_ROOT) / 'rt_validation').resolve()
 CONFIG_PATH = WORK / 'runtime_config.json'
 CONFIG = json.loads(CONFIG_PATH.read_text(encoding='utf8')) if CONFIG_PATH.exists() else {}
 OUTPUT = WORK / 'results'

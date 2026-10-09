@@ -11,6 +11,9 @@ from datetime import datetime, timezone
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from lipidbench.utils.local_paths import get_local_root
 LOCKED_CHECKPOINT_SHA256 = '374f81705352875890ee26f8daec8334162644e209ddec60f5de51bbf3b6c695'
 
 
@@ -71,7 +74,16 @@ def initialize(args):
         raise FileExistsError('Work directory already initialized. Resume with a stage command, or choose a new work directory.')
     bundle = args.bundle.resolve()
     source = bundle / 'rt_shift16'
-    manifest = pd.read_csv(PROJECT_ROOT / 'PeakTruthLab/final_delivery/rt_validation_20260930/mzml16_manifest.csv')
+    manifest_path = args.sample_manifest or (
+        get_local_root(PROJECT_ROOT) /
+        'artifacts/reproduction/PeakTruthLab/final_delivery/rt_validation_20260930/mzml16_manifest.csv'
+    )
+    if not manifest_path.is_file():
+        raise FileNotFoundError(
+            f"Original sample manifest is missing: {manifest_path}. "
+            "Supply --sample-manifest from your local RT reproduction materials."
+        )
+    manifest = pd.read_csv(manifest_path)
     # Preserve an ASCII junction spelling for pyOpenMS builds that cannot open
     # a Unicode target path on Windows. Hash checks still validate the bytes.
     mzml_dir = args.mzml_dir.absolute()
@@ -213,6 +225,7 @@ def main():
     p.add_argument('--work-dir', type=Path, required=True)
     p.add_argument('--bundle', type=Path)
     p.add_argument('--mzml-dir', type=Path)
+    p.add_argument('--sample-manifest', type=Path, help='Original local mzml16_manifest.csv')
     p.add_argument('--checkpoint', type=Path)
     p.add_argument('--rscript')
     p.add_argument('--device', choices=['auto', 'cpu', 'cuda'], default='auto')

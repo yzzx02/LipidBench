@@ -1,5 +1,0 @@
-# Keep saved result bytes stable for the accompanying SHA-256 manifest.
-paired_rerun_xcms_vs_model.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-boundary_study_counts_and_metrics.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-boundary_473_summary.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-boundary_632_eligibility.csv -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

@@ -1,75 +1,89 @@
-# 忽略所有数据文件
-*.mzML
-*.raw
-*.cdf
-*.csv
-*.txt
-*.pdf
-
-
-
-# 忽略Python产生的缓存垃圾
+# Python and test caches
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+build/
+dist/
+*.egg-info/
 
-
-#忽略虚拟环境
-.venv/
-
-# 忽略所有 .npy 文件
-*.npy
-
-# 忽略所有.jpeg和.json文件
-*.jpeg
-*.json
-*.png
-*.jsonl
-*.sha256
-
-
-# =========================
-# IDE & 操作系统自动生成文件
-# =========================
+# Local environments, editor state, temporary work and outputs
+.venv*/
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+.codex_tmp/
+tmp/
+work/
+outputs/
+results/
+Results/
+local_artifacts/
+artifacts/
+cache/
+cleanup_kept_*/
+cleanup_inventory_*.json
+_remote_attribute_handoff*/
+.peak_fusion_training.lock
+PeakTruthLab/results/
+PeakTruthLab/releases/
+PeakTruthLab/final_delivery/
 
-# =========================
-# 深度学习模型 (PyTorch等)
-# =========================
-# 模型权重文件非常大，强烈建议忽略，避免撑爆 Git 仓库
+# Raw input and generated scientific/reproduction artifacts are local only
+/data/
+*.mzML
+*.mzXML
+*.raw
+*.cdf
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.txt
+*.json
+*.jsonl
+*.sha256
+*.log
+*.npy
+*.npz
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Paper figures must never be committed, including TIFF and SVG
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.tif
+*.tiff
+*.pdf
+*.svg
+
+# Checkpoints and runtime model data; the Python model package remains source
 *.pth
 *.pt
 *.ckpt
+*.pkl
+*.pickle
 runs/
 tb_logs/
 models/
-
-# Keep the PeakTruthLab model package and canonical dataset metadata in Git.
 !/lipidbench/models/
+
+# Maintained source configuration and locked canonical dataset metadata
+!/requirements*.txt
 !/PeakTruthLab/configs/*.json
+!/PeakTruthLab/configs/labelme_labels.txt
 !/PeakTruthLab/datasets/feature_table_final_15409.csv
 !/PeakTruthLab/datasets/feature_table_final_15409.audit.json
-!/requirements-dev.txt
-!/requirements-peak-common.txt
-!/requirements-peak-nvidia-cu128.txt
-!/requirements-rt-validation.txt
-work/rt_validation/
-
-# Review workbooks are local deliverables, not runtime inputs.
-*.xlsx
-
-# Local accelerator environments, diagnostics, results, and release builds.
-.venv*/
-.codex_tmp/
-PeakTruthLab/results/
-PeakTruthLab/releases/
-
-# Compact final delivery and inspectable final dataset metadata stay in Git.
-!/PeakTruthLab/final_delivery/
-!/PeakTruthLab/final_delivery/**
 !/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/tables/
 !/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/tables/*.csv
 !/PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814/audits/
