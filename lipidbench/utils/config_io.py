@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 
+from .local_paths import expand_local_paths
+
 
 def _resolve_path(base_dir, maybe_relative_path):
     path = Path(maybe_relative_path)
@@ -21,7 +23,7 @@ def load_config():
         raise FileNotFoundError(f"Configuration file not found at {Config_path}")
     with open(Config_path, "r", encoding="utf-8") as file:
         config = yaml.safe_load(file)
-    return config
+    return expand_local_paths(config)
 
 
 def get_base_dir():

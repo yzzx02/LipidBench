@@ -38,7 +38,8 @@ checkpoint; substituting the default concat checkpoint is rejected by SHA-256.
 
 ## Transfer and checks
 
-Small summaries/parameters/manifests are committed to `final_delivery`.
+Summaries, parameters, manifests and paper deliverables are now machine-local
+under `<CHROMAPEAK_LOCAL_ROOT>/artifacts/reproduction/PeakTruthLab/final_delivery/`.
 Full per-peak tables, original 16 mzML files, raw predictions/logs, frozen
 references/history, historical code, cached boundary-audit EICs, exact checkpoint
 and matching R runtime are Release assets. Figures are excluded. Archive CRCs

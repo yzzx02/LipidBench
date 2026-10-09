@@ -29,6 +29,13 @@ font policy explicitly in every worker; the preflight records the resolved font
 and software/source fingerprint. A change of device or environment cannot silently
 reuse existing prediction CSVs in the same work directory.
 
+On current main, paper deliverables and their sample manifests are machine-local,
+not source files. `init` accepts `--sample-manifest <path-to-mzml16_manifest.csv>`;
+without it, the default is
+`<CHROMAPEAK_LOCAL_ROOT>/artifacts/reproduction/PeakTruthLab/final_delivery/rt_validation_20260930/mzml16_manifest.csv`.
+The historical Release tag retains its original manifest. Runtime work and caches
+should use an external `--work-dir`; the fallback runtime location is external too.
+
 ## RX 9070 XT on Windows
 
 Use Python **3.12** and a matching AMD **torch + torchvision** pair. The checked

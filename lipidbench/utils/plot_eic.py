@@ -7,9 +7,53 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import MultipleLocator, FuncFormatter, ScalarFormatter, MaxNLocator
 from pathlib import Path
 from typing import Union, Optional
+from dataclasses import dataclass
 
 
 _GAUSSIAN_FILTER = None
+
+
+@dataclass(frozen=True)
+class EICImageGeometry:
+    """Axes coordinates of the saved canvas, with an image top-left origin."""
+
+    width: int
+    height: int
+    axes_left: float
+    axes_top: float
+    axes_right: float
+    axes_bottom: float
+    rt_left: float
+    rt_right: float
+    intensity_bottom: float
+    intensity_top: float
+
+    def box_to_rt(self, box) -> tuple[float, float]:
+        coordinates = np.asarray(box, dtype=float)
+        if coordinates.shape != (4,) or not np.isfinite(coordinates).all():
+            raise ValueError("detection box must have four finite coordinates")
+        x1, y1, x2, y2 = coordinates
+        left = max(self.axes_left, x1)
+        right = min(self.axes_right, x2)
+        if left >= right or y1 >= y2 or y2 <= self.axes_top or y1 >= self.axes_bottom:
+            raise ValueError("detection box does not overlap the EIC axes")
+        scale = (self.rt_right - self.rt_left) / (self.axes_right - self.axes_left)
+        return (self.rt_left + (left - self.axes_left) * scale,
+                self.rt_left + (right - self.axes_left) * scale)
+
+    def candidate_box(self, rtmin: float, rtmax: float, peak_height: float) -> list[float]:
+        """Use the same 5% horizontal/height padding as the training labels."""
+        if not np.isfinite([rtmin, rtmax, peak_height]).all() or rtmin >= rtmax or peak_height <= 0:
+            raise ValueError("candidate requires ordered finite RT bounds and positive height")
+        pad = (rtmax - rtmin) * 0.05
+        xscale = (self.axes_right - self.axes_left) / (self.rt_right - self.rt_left)
+        yscale = (self.axes_bottom - self.axes_top) / (self.intensity_top - self.intensity_bottom)
+        left = self.axes_left + (rtmin - pad - self.rt_left) * xscale
+        right = self.axes_left + (rtmax + pad - self.rt_left) * xscale
+        top = self.axes_bottom - (peak_height * 1.05 - self.intensity_bottom) * yscale
+        bottom = self.axes_bottom - (0.0 - self.intensity_bottom) * yscale
+        return [float(np.clip(left, 0, self.width)), float(np.clip(top, 0, self.height)),
+                float(np.clip(right, 0, self.width)), float(np.clip(bottom, 0, self.height))]
 
 
 def _tick_formatter(v, _pos):
@@ -211,6 +255,15 @@ def plot_eic(
         # Continue without tight layout so batch export does not abort.
         pass
     fig.canvas.draw()
+    canvas_width, canvas_height = fig.canvas.get_width_height()
+    axes_bbox = ax.get_window_extent()
+    geometry = EICImageGeometry(
+        width=canvas_width, height=canvas_height,
+        axes_left=float(axes_bbox.x0), axes_top=float(canvas_height - axes_bbox.y1),
+        axes_right=float(axes_bbox.x1), axes_bottom=float(canvas_height - axes_bbox.y0),
+        rt_left=float(ax.get_xlim()[0]), rt_right=float(ax.get_xlim()[1]),
+        intensity_bottom=float(ax.get_ylim()[0]), intensity_top=float(ax.get_ylim()[1]),
+    )
     out_path = folder / f"{name}.png"
     plt.savefig(str(out_path), dpi=int(dpi))
 
@@ -229,3 +282,4 @@ def plot_eic(
         )
 
     plt.close()
+    return geometry

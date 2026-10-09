@@ -13,10 +13,16 @@ import csv
 import hashlib
 import json
 import os
+import sys
 import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable, Iterator
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from lipidbench.utils.local_paths import get_local_root
 
 
 RELEASE_NAME = "rtx4070_final_20260818"
@@ -157,8 +163,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=repo_root / "PeakTruthLab" / "releases" / RELEASE_NAME,
+        default=get_local_root(repo_root) / "artifacts/reproduction/PeakTruthLab/releases" / RELEASE_NAME,
     )
+    parser.add_argument("--results-root", type=Path,
+        default=get_local_root(repo_root) / "artifacts/reproduction/PeakTruthLab/results/rtx4070_final_merged_20260814")
     return parser.parse_args()
 
 
@@ -166,7 +174,7 @@ def main() -> None:
     args = parse_args()
     repo_root = args.repo_root.resolve()
     output_dir = args.output_dir.resolve()
-    results_root = repo_root / "PeakTruthLab" / "results" / "rtx4070_final_merged_20260814"
+    results_root = args.results_root.resolve()
     formal_root = results_root / FORMAL_RUN
     dataset_root = repo_root / "PeakTruthLab" / "datasets" / "PeakTruthLab_final_merged_20260814"
     validate(formal_root, results_root, dataset_root)

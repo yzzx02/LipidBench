@@ -1,9 +1,0 @@
-{
-  "release_asset": "ChromaPeak_RT_image_only_checkpoint_20260907.zip",
-  "filename": "best_detection.pt",
-  "sha256": "374f81705352875890ee26f8daec8334162644e209ddec60f5de51bbf3b6c695",
-  "bytes": 580263561,
-  "fusion_mode": "image_only",
-  "training_task": "joint",
-  "scope": "exact historical RT experiment checkpoint; current naive-concat default is not substituted"
-}

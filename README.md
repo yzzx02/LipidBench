@@ -14,7 +14,7 @@ The current paper dataset and model are the RTX 4070 final release (2026-08-18).
 
 - Final merged dataset: `PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814`
 - Reproducible protocol: `PeakTruthLab/docs/RTX4070_MERGE_AND_SPLIT_PROMPT.md`
-- Compact paper-ready delivery: `PeakTruthLab/final_delivery/rtx4070_final_20260818`
+- Machine-local paper figures and reproduction materials: `<local-root>/artifacts/reproduction/`
 - GitHub Release assets: final dataset, complete non-checkpoint results, and the two Main-model checkpoints
 
 Only the Main split's `best_detection.pt` and `best_seed.pt` are published. The latter is the candidate-classification checkpoint under its historical filename. LODO/cross-domain checkpoints and `last.pt` files are deliberately excluded; their metrics, histories, thresholds, and predictions remain available.
@@ -27,15 +27,16 @@ Only the Main split's `best_detection.pt` and `best_seed.pt` are published. The 
 - Current released model: 480 x 480 EIC images, 16 attributes, and naive concatenation. Gated fusion remains an ablation option.
 - Attribute imputation and standardization are fitted on Train only.
 
-The public terminology is **Candidate (候选峰)**. Historical `seed_*` API keys and checkpoint filenames retain their original spelling for compatibility. `lipidbench/` remains the implementation package; `PeakTruthLab/` remains the annotated dataset and experiment workspace. Data paths, manifests, saved weights, and `python main.py` commands remain usable. Obsolete training entry points have been removed; see `PeakTruthLab/scripts/README_MODELS.md` for the current entry points.
+The public terminology is **Candidate (候选峰)**. Historical `seed_*` API keys and checkpoint filenames retain their original spelling for compatibility. `lipidbench/` remains the implementation package; `PeakTruthLab/` retains the maintained benchmark source and locked dataset metadata. Machine-local input/output paths come from configuration or explicit CLI arguments. Obsolete training entry points have been removed; see `PeakTruthLab/scripts/README_MODELS.md` for the current entry points.
 
 The Main split preserves source proportions and keeps duplicate groups together. Cross-domain claims should use the LODO experiments; the Main split is not a complete mzML-disjoint evaluation. See [the architecture review](PeakTruthLab/docs/PROJECT_REVIEW_20260930.md) for implementation findings and scope.
 
 ## Install
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+. .\scripts\use_local_workspace.ps1
+python -m venv "$env:CHROMAPEAK_LOCAL_ROOT\environments\main"
+& "$env:CHROMAPEAK_LOCAL_ROOT\environments\main\Scripts\Activate.ps1"
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -85,21 +86,46 @@ Training and locked evaluation entry points are documented in `PeakTruthLab/READ
 - `PeakTruthLab/scripts/data_prep/`: dataset construction and QC
 - `PeakTruthLab/scripts/convnext/`: candidate classification and ablation workflows
 - `PeakTruthLab/scripts/detection/`: joint detection + candidate training/evaluation
-- `PeakTruthLab/final_delivery/`: compact paper-ready results and field documentation
 - `tests/`: unit and interface tests
 
-Large mzML files, images, model weights, and full experiment outputs are distributed as GitHub Release assets rather than committed to Git history.
+The released Main-model checkpoints and canonical training dataset remain available
+as GitHub Release assets. Paper figures, local evaluation tables, reproduction
+packages, temporary work and caches are kept outside the source checkout and are
+not committed or uploaded as new paper-figure Releases.
+
+## Local storage
+
+The default local root is a sibling of the checkout: `D:\LipidBench-local` for
+`D:\LipidBench`. `CHROMAPEAK_LOCAL_ROOT` overrides it; `CHROMAPEAK_CACHE_ROOT`
+can override just the cache location. `config.yaml` expands these two placeholders
+before passing paths to the feature-extraction adapters.
+
+- `artifacts/reproduction/outputs/`: saved experiments, figures and replot data
+- `artifacts/reproduction/PeakTruthLab/final_delivery/`: local paper deliverables
+- `artifacts/reproduction/data/`: machine-local input files
+- `artifacts/reproduction/results/`: feature-extraction output
+- `cache/`: Python bytecode, pip cache, temporary files, pytest cache and training locks
+- `archives/`: preserved historical source snapshots
+
+Dot-source `scripts/use_local_workspace.ps1` before commands to put Python bytecode,
+pip and temporary files in the external cache. Existing Python/GPU environments
+remain usable. Maintained source and locked canonical dataset metadata stay in Git;
+the ignore rules exclude all generated figure formats and local result directories.
 
 ## RT validation and workstation transfer
 
-The [2026-09-30 RT validation delivery](PeakTruthLab/final_delivery/rt_validation_20260930/README.md)
-contains inspectable summaries for 16 mzML files, 1,000 joint-baseline features
-and seven actual RT shifts. Complete tables, original inputs, the exact
-historical image-only checkpoint and a matching Windows R runtime are supplied
-as Release assets. The [Chinese methods/results draft and two main figures](PeakTruthLab/final_delivery/rt_validation_20260930/PAPER_SECTIONS_ZH.md)
-include both the actual-RT experiment and the separate 473-peak human-boundary
-comparison; PNG/PDF figures and paired boundary data are committed with the draft.
-The historical Release archives omit figures. The
+MS2-guided missing-feature recovery is available through
+`python -m chromapeak rescue-ms2 --help`. It accepts an identification table,
+extracts MS1 EICs at precursor m/z and MS2 RT, detects and refines new candidates,
+recomputes their attributes and validates them with the candidate checkpoint.
+It exports deduplicated rescued peaks and counts; differential analysis is outside
+its scope. See the [input schema and usage](PeakTruthLab/docs/MS2_GUIDED_RESCUE.md).
+
+The local RT validation delivery contains inspectable summaries for 16 mzML files,
+1,000 joint-baseline features and seven actual RT shifts. Its paper draft, figures
+and paired analysis tables are local artifacts. The previously published RT
+runtime/input archives omit paper figures and remain available for historical
+workstation replay. The
 [portable replay guide](PeakTruthLab/scripts/rt_validation/README.md) includes
 RX 9070 XT preflight checks and comparison with the saved RTX4070 results.
 This experiment retains its historical model and does not replace the current

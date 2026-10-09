@@ -39,4 +39,8 @@ The paper model is Naive concat with image features plus all 16 attributes. The 
 - Locked target evaluation: `scripts/detection/evaluate_rtx4070_multitask_locked_target.py`
 - Package final release: `scripts/reporting/package_final_rtx4070_release.py`
 
-The exact ordered protocol is in `docs/RTX4070_MERGE_AND_SPLIT_PROMPT.md`. Compact results, data-quality statistics, and cross-PC instructions are in `final_delivery/rtx4070_final_20260818`.
+The exact ordered protocol is in `docs/RTX4070_MERGE_AND_SPLIT_PROMPT.md`.
+Compact paper results and cross-PC materials are machine-local under
+`<CHROMAPEAK_LOCAL_ROOT>/artifacts/reproduction/PeakTruthLab/final_delivery/`.
+They are not part of the source repository. The published Main-model weights
+and canonical training dataset remain available through the final benchmark Release.

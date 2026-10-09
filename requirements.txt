@@ -1,6 +1,7 @@
 # Feature extraction, peak quantification, and CPU-side analysis.
 numpy==2.5.1
 pandas>=2.2,<3.1
+openpyxl>=3.1,<4
 scipy>=1.14,<1.18
 matplotlib>=3.9,<3.11
 scikit-learn>=1.5,<1.9

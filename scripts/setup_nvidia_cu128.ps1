@@ -1,11 +1,15 @@
 param(
-    [string]$EnvironmentPath = ".venv-nvidia-cu128"
+    [string]$EnvironmentPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "use_local_workspace.ps1")
+if (-not $EnvironmentPath) {
+    $EnvironmentPath = Join-Path $env:CHROMAPEAK_LOCAL_ROOT "environments\nvidia-cu128"
+}
 $environment = [System.IO.Path]::GetFullPath(
-    (Join-Path $projectRoot $EnvironmentPath)
+    $(if ([System.IO.Path]::IsPathRooted($EnvironmentPath)) { $EnvironmentPath } else { Join-Path $projectRoot $EnvironmentPath })
 )
 $python = Join-Path $environment "Scripts\python.exe"
 

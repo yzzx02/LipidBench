@@ -15,7 +15,7 @@ The setup installs the common training dependencies and the CUDA wheels, then ch
 
 ## Final data
 
-Use `PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814`, containing the final 19,817 EIC windows and their 16-attribute manifests. The maintained dataset and release documentation is in `PeakTruthLab/README.md` and `PeakTruthLab/final_delivery/rtx4070_final_20260818`.
+Use `PeakTruthLab/datasets/PeakTruthLab_final_merged_20260814`, containing the final 19,817 EIC windows and their 16-attribute manifests. The maintained dataset and release documentation is in `PeakTruthLab/README.md`. Paper deliverables are local under `<CHROMAPEAK_LOCAL_ROOT>/artifacts/reproduction/PeakTruthLab/final_delivery/`.
 
 ## Released joint workflow
 
